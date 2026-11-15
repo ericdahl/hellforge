@@ -9,7 +9,7 @@ npm install
 npm run dev        # http://localhost:5173 (also exposed on your LAN so you can open it on a phone)
 ```
 
-`npm run build` writes a static site to `dist/` that you can host anywhere (it is published to GitHub Pages from this repo). On a phone, "Add to Home Screen" runs it fullscreen. Landscape is recommended, but portrait works too.
+`npm run build` writes a static site to `dist/` that you can host anywhere (it is published to GitHub Pages from this repo, at <https://ericdahl.github.io/hellforge/>). On a phone, "Add to Home Screen" runs it fullscreen. Landscape is recommended, but portrait works too.
 
 URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero.
 
@@ -88,13 +88,13 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 | 0.7.0 | | Potion pools replace belt columns and backpack potions; first save migration (`migrateCharacter`, `SAVE_VERSION`) |
 | 0.6.1 | | Hollow Cave stragglers on the HUD and automap; skeleton count on the Raise Skeleton button |
 | 0.6.0 | | Hit feedback: freeze frames, crit pops, death effects by damage type, boss flashes |
-| 0.5.0 | `41e78b6` | Generated music, ambient sound, weather and status vignettes |
-| 0.4.2 | `81bbadc` | Equipped/Backpack separation and side-by-side gear comparison |
-| 0.4.1 | `d77a7a5` | Item keyboard shortcuts and right-click |
-| 0.4.0 | `12380da` | Necromancer class |
-| 0.3.0 | `45bb4fd` | Changelog viewer on the title screen |
-| 0.2.0 | `d6c3a2d` | Save export/import (file or copy/paste code) |
-| 0.1.0 | `0fffeff` | Initial release. Roll back with `git checkout 0fffeff -- games/hellforge/claude` |
+| 0.5.0 | `50fa196` | Generated music, ambient sound, weather and status vignettes |
+| 0.4.2 | `8f1d018` | Equipped/Backpack separation and side-by-side gear comparison |
+| 0.4.1 | `3c1bf10` | Item keyboard shortcuts and right-click |
+| 0.4.0 | `a5f1efd` | Necromancer class |
+| 0.3.0 | `96d8f0e` | Changelog viewer on the title screen |
+| 0.2.0 | `3c37bb6` | Save export/import (file or copy/paste code) |
+| 0.1.0 | `a020f79` | Initial release. Roll back with `git checkout a020f79 -- .` |
 
 ## Development
 
