@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.23.1',
+    date: '2026-11-15',
+    notes: [
+      'The Skills panel has one Hotbar row instead of two rows of slot buttons. It shows all four slots and what is in each. Choose the selected skill or Basic Attack, then tap a slot to put it there.',
+      'Putting a skill in a slot when it is already in another one swaps the two, so the same skill is never on the bar twice.',
+    ],
+  },
+  {
     version: '0.23.0',
     date: '2026-11-14',
     notes: [

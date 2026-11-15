@@ -1,4 +1,4 @@
-import { canLearn, learnSkill, skillLevel } from '../game/character';
+import { canLearn, learnSkill, placeOnHotbar, skillLevel } from '../game/character';
 import { SKILL_BY_ID, type SkillDef } from '../game/skills';
 import { feeds, skillTree, unlockedBy, type TreeNode } from '../game/skilltree';
 import { skillIconUrl } from '../render/icons';
@@ -7,8 +7,16 @@ import { header, respecControl, type PanelHost } from './panels';
 
 /** The skill whose details are showing. Kept while the panel is open, forgotten when it is opened afresh. */
 let selected: string | null = null;
+/** Whether tapping a hotbar slot places Basic Attack rather than the selected skill. */
+let placeAttack = false;
 export function resetSkillUi() {
   selected = null;
+  placeAttack = false;
+}
+
+function select(id: string) {
+  selected = id;
+  placeAttack = false;
 }
 
 type NodeState = 'known' | 'open' | 'ready' | 'locked';
@@ -61,7 +69,7 @@ export function skillsPanel(host: PanelHost): HTMLElement {
       class: `tnode ${st.state}${s.id === sel.id ? ' sel' : ''}${related.has(s.id) ? ' rel' : ''}${synergy.has(s.id) ? ' syn' : ''}`,
       'data-skill': s.id, 'data-state': st.state, 'aria-label': `${s.name}, ${why}`, 'aria-pressed': String(s.id === sel.id), title: `${s.name}: ${why}`,
       style: { gridColumn: String(n.col + 1), gridRow: String(n.row + 1) },
-      onclick: () => { selected = s.id; host.refresh(); focusDetail(); },
+      onclick: () => { select(s.id); host.refresh(); focusDetail(); },
     },
       h('span', { class: 'tn-icon' },
         h('img', { src: skillIconUrl(s.id), alt: '' }),
@@ -79,13 +87,11 @@ export function skillsPanel(host: PanelHost): HTMLElement {
   treeEl.style.setProperty('--tcols', String(tree.cols));
   treeEl.style.setProperty('--trows', String(tree.levels.length));
 
-  const attackAssign = h('div', { class: 'assign' }, h('span', { class: 'dim small' }, 'Basic Attack slot:'), ...[0, 1, 2, 3].map((i) =>
-    h('button', { class: `btn tiny ${c.hotbar[i] === 'attack' ? 'on' : ''}`, onclick: () => { c.hotbar[i] = 'attack'; host.refresh(); } }, String(i + 1))));
   return h('div', { class: 'panel skl' },
     header(host, 'Skills', c.skillPoints ? `${c.skillPoints} point${c.skillPoints > 1 ? 's' : ''} to spend` : undefined),
     h('div', { class: 'p-body skl-body' },
       treeEl,
-      h('div', { class: 'skl-side' }, skillDetail(host, sel), attackAssign, respecControl(host))));
+      h('div', { class: 'skl-side' }, skillDetail(host, sel), hotbarControl(host, sel), respecControl(host))));
 }
 
 /** On a narrow screen the details sit under the tree: bring them into view when a skill is picked. */
@@ -106,7 +112,7 @@ function skillDetail(host: PanelHost, s: SkillDef): HTMLElement {
   const branch = skillTree(c.classId).branches.find((b) => b.id === skillTree(c.classId).nodes.find((n) => n.skill.id === s.id)!.branch)!;
   const leads = unlockedBy(c.classId, s.id);
   const fed = feeds(c.classId, s.id);
-  const pick = (id: string) => h('button', { class: 'skl-link', onclick: () => { selected = id; host.refresh(); } }, SKILL_BY_ID[id].name);
+  const pick = (id: string) => h('button', { class: 'skl-link', onclick: () => { select(id); host.refresh(); } }, SKILL_BY_ID[id].name);
   const list = (items: (Node | string)[]) => items.flatMap((x, i) => (i ? [', ', x] : [x]));
   const row = (label: string, ...body: (Node | string)[]) => h('div', { class: 'skl-row small' }, h('span', { class: 'dim' }, `${label} `), ...body);
   return h('div', { class: 'skl-detail', 'data-skill': s.id },
@@ -128,9 +134,32 @@ function skillDetail(host: PanelHost, s: SkillDef): HTMLElement {
         class: 'btn primary skl-learn-btn', disabled: !!why, 'aria-label': `Learn ${s.name}`,
         onclick: () => { learnSkill(c, s.id); w.refreshStats(); host.refresh(); },
       }, hard ? 'Add a point' : 'Learn'),
-      why ? h('span', { class: 'dim small skl-why' }, why) : null),
-    hard && s.kind !== 'passive'
-      ? h('div', { class: 'assign' }, h('span', { class: 'dim small' }, 'Slot:'), ...[0, 1, 2, 3].map((i) =>
-          h('button', { class: `btn tiny ${c.hotbar[i] === s.id ? 'on' : ''}`, onclick: () => { c.hotbar[i] = s.id; host.refresh(); } }, String(i + 1))))
-      : null);
+      why ? h('span', { class: 'dim small skl-why' }, why) : null));
+}
+
+/** The four hotbar slots and what is in each. Tapping a slot puts the selected skill, or Basic Attack, there. */
+function hotbarControl(host: PanelHost, sel: SkillDef): HTMLElement {
+  const c = host.world.char;
+  const canPlace = !!c.skills[sel.id] && sel.kind !== 'passive';
+  const attack = placeAttack || !canPlace;
+  const placing = attack ? 'attack' : sel.id;
+  const name = (id: string) => (id === 'attack' ? 'Basic Attack' : SKILL_BY_ID[id].name);
+  const choice = (on: boolean, label: string, onclick: () => void) =>
+    h('button', { class: `btn tiny hb-choice ${on ? 'on' : ''}`, 'aria-pressed': String(on), onclick }, label);
+  return h('div', { class: 'skl-hotbar' },
+    h('div', { class: 'hb-head' },
+      h('span', { class: 'dim small' }, 'Put'),
+      canPlace ? choice(!attack, sel.name, () => { placeAttack = false; host.refresh(); }) : null,
+      choice(attack, 'Basic Attack', () => { placeAttack = true; host.refresh(); }),
+      h('span', { class: 'dim small' }, 'in a slot:')),
+    h('div', { class: 'hb-slots' }, ...c.hotbar.map((id, i) =>
+      h('button', {
+        class: `btn hb-slot ${id === placing ? 'on' : ''}`, 'data-slot': String(i + 1),
+        'aria-label': `Slot ${i + 1}: ${id ? name(id) : 'empty'}`,
+        onclick: () => { placeOnHotbar(c.hotbar, i, placing); host.refresh(); },
+      },
+        h('span', { class: 'hb-num' }, String(i + 1)),
+        id ? h('img', { src: skillIconUrl(id), alt: '' }) : h('span', { class: 'hb-empty' }),
+        h('span', { class: 'hb-name' }, id ? name(id) : 'Empty')))),
+    canPlace || sel.kind === 'passive' ? null : h('div', { class: 'dim small' }, `Learn ${sel.name} to put it on the hotbar.`));
 }

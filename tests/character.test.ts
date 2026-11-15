@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addPotion, addToInventory, addXp, allocStat, canLearn, choosePotion, computeStats, createCharacter, equipFromInventory, findSpace,
   learnSkill, migrateCharacter, potionCount, skillLevel, sortGrid, takePotion, xpForLevel, INV_COLS, INV_ROWS, SAVE_VERSION, type Character,
+  placeOnHotbar
 } from '../src/game/character';
 import { baseOf, makeItem } from '../src/game/items';
 import { SKILL_BY_ID } from '../src/game/skills';
@@ -9,6 +10,18 @@ import { World } from '../src/game/world';
 import v1Save from './fixtures/save-v1.json';
 
 describe('character', () => {
+  it('placing a skill on the hotbar swaps it with what was in that slot', () => {
+    const bar = ['attack', 'bash', null, null];
+    placeOnHotbar(bar, 2, 'frenzy');
+    expect(bar).toEqual(['attack', 'bash', 'frenzy', null]);
+    placeOnHotbar(bar, 0, 'bash');
+    expect(bar).toEqual(['bash', 'attack', 'frenzy', null]);
+    placeOnHotbar(bar, 3, 'attack');
+    expect(bar).toEqual(['bash', null, 'frenzy', 'attack']);
+    placeOnHotbar(bar, 3, 'attack');
+    expect(bar).toEqual(['bash', null, 'frenzy', 'attack']);
+  });
+
   it('starts with class gear and a starter skill', () => {
     const c = createCharacter('Kor', 'reaver');
     expect(c.equipment.weapon?.base).toBe('short_sword');

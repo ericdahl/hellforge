@@ -721,3 +721,10 @@ export function unequip(c: Character, slot: Slot): string | null {
 export function classSkillList(c: Character) {
   return classSkills(c.classId);
 }
+
+/** Puts a skill in a hotbar slot. If it is already in another slot, the two swap, so nothing is on the bar twice. */
+export function placeOnHotbar(hotbar: (string | null)[], slot: number, id: string) {
+  const was = hotbar.indexOf(id);
+  if (was >= 0 && was !== slot) hotbar[was] = hotbar[slot];
+  hotbar[slot] = id;
+}

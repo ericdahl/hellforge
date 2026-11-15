@@ -70,9 +70,16 @@ test('the skill tree shows branches, requirements and what each skill is waiting
   // Out of points: what could be learned no longer asks to be.
   await expect(node('grave_golem')).toHaveAttribute('data-state', 'ready');
 
-  // A learned skill can be put on a button from its details.
-  await page.locator('.skl-detail .assign .btn', { hasText: '3' }).click();
+  // A learned skill can be put on the hotbar, and Basic Attack too; moving one swaps it with what was there.
+  await expect(page.locator('.hb-slot')).toHaveCount(4);
+  await page.locator('.hb-slot[data-slot="3"]').click();
   expect(await page.evaluate(() => (window as any).game.world.char.hotbar[2])).toBe('corpse_burst');
+  await expect(page.locator('.hb-slot[data-slot="3"] .hb-name')).toHaveText('Corpse Burst');
+  await page.locator('.hb-choice', { hasText: 'Basic Attack' }).click();
+  await page.locator('.hb-slot[data-slot="3"]').click();
+  const bar = await page.evaluate(() => (window as any).game.world.char.hotbar);
+  expect(bar[2]).toBe('attack');
+  expect(bar[0]).toBe('corpse_burst');
   await page.screenshot({ path: `test-results/${info.project.name}-skilltree-detail.png` });
   expect(errors).toEqual([]);
 });
