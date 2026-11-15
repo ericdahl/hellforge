@@ -32,26 +32,126 @@ Panels pause the game.
 
 ## The game
 
-- **Six classes.** The **Reaver** (melee: Bash, Frenzy, Leap Attack, Whirlwind, War Cry), the **Arcanist** (Fire Bolt, Ice Bolt, Charged Bolt, Frost Nova, Teleport, Fireball, Meteor), the **Huntress** (bows: Power Shot, Multishot, Exploding and Storm Arrows, Strafe, plus Critical Eye and Evade), the **Necromancer** (summons: Raise Skeleton from corpses, Grave Golem, Skeletal Mastery; curses and corpses: Mark of Frailty, Corpse Burst; bone and poison: Bone Shards, Bone Ward, Bone Lance, Bone Storm, Blight Nova) and the **Forgewright** (two-handed hammers: Sunder, Anvil Drop, Shockwave, Earthshaker; constructs: Ballista and Bellows turrets, the Brass Sentinel golem, a Furnace that heals allies near it, Gearwork; Heat: Temper, Slag Burst, White Heat). The **Hiveborn** is a four-armed insect (Soldier: Rend, Carapace, Many Hands, Hold the Line, Fourfold Strike; Archer: Loose, Sky Hunter, Volley, Skyfall; Faith: Prayer of Mending, Ward of Faith, Congregation, Hymn of the Hive, Sky Above). Servants that can walk follow you between areas (turrets and furnaces stay where they are built and wind down), and monsters fight them as well as you. Each level gives 5 stat points and a skill point. Skills have level requirements, prerequisites and synergies, and the Skills panel draws them as a tree: three branches per class, a row per level, a line per prerequisite.
-- **Four arms.** A Hiveborn can put a one-handed weapon in either upper hand (the off-hand one adds 50% of its damage to each blow, more with Many Hands), and can hold a two-hander or a bow with a shield or a second weapon beside it. Its lower arms are claws: their damage, which grows with level and Strength, is added to every melee blow. With a bow equipped, a plain attack shoots at range and claws at close quarters, and an off-hand weapon adds to the claws instead of the arrows.
-- **Heat.** A Forgewright's hammer blows build Heat, shown on a gauge above the experience bar. Temper turns Heat into fire damage and Slag Burst vents it all as a blast (it costs Heat, not mana). At 100 the smith overheats and burns until Heat falls below 60 or is vented. In Act 3 a Furnace counts as a fire, and a smith at 75 Heat or more is a little warm.
-- **Loot.** Items drop as normal, socketed (grey), magic (blue), rare (yellow), set (green) or unique (gold). Magic and better items drop unidentified; the sage identifies them for free. Gems in seven types and five grades go into sockets, with different effects in weapons, armor and shields. Your inventory is a grid where items take up space by size. Magic find improves your odds.
-- **The Forge.** A forge stands beside the blacksmith in every town. **Salvage** turns loot into Cinders, and magic or better items into Essences of their element. **Heat** adds forge levels up to +10 (4% base damage or defense each, shown as "+7 War Axe"); from +6 a heat can fail and crack the item back a level, and on Hardcore a failed heat to +8 or more can shatter it. An optional hammer-timing game adds up to 10% to the chance. **Temper** re-rolls one chosen affix, **Quench** adds or converts an elemental damage or resistance affix, **Ember-Seal** locks an affix against tempering, and **Smelt** turns three items of one type and rarity into one of the next. Forge mastery grows with use, improves costs and odds, and teaches socket punching, sealing and smelting legends. Vhorza's ember, once you carry it, makes the forge burn hotter.
-- **Monsters.** Imps that flee when a packmate dies and Hexers that raise them again, ghouls, skeletons, archers, bats, hounds, brutes, wraiths and cultists. Champion packs (blue) and uniques with modifiers like Fire Enchanted, Stone Skin, Extra Fast, Lightning Enchanted, Teleporter and Bombardier (gold). Bosses: Gorvath the Glutton, the Drowned Bishop, Ossuary Warden Krell, and Vhorza, Mother of Cinders.
-- **The world.** Emberwatch Camp (healer, blacksmith and forge, sage, gambler, stash) and seven randomly generated areas: Cinder Fields, Hollow Cave, Gloomwood, Sunken Chapel, Catacombs 1-2 and the Hellforge. Activate waypoints to fast-travel, and cast Town Portal to restock and come back. Shrines, chests and (occasionally explosive) barrels are scattered around.
-- **Act 2: The Glass Sea.** Killing Vhorza opens a caravan to Tel Maresh and seven more areas: the Ashfall Road, Cistern of Whispers, the Glass Sea, Carrion Mesa, Buried Imhara (the Bazaar and the Hall of Dials) and the Noon Vault. Sandstorms and quicksand change how the desert plays, the new monsters each have a rule to learn (Embalmed Dead rise unless burned, Mirage Dancers split into copies with no shadow, Noon Acolytes ward their allies, Dune Burrowers tunnel to you, Carrion Kites heal on corpses, Salt Colossi telegraph ground slams), and the four bosses change phase as they are wounded.
-- **Act 3: The Ember Road.** Killing Corvane opens the road back north. The ember Vhorza left is dying and the cold she held back is loose: Emberwatch lies in ruins under snow (a new town), and beyond it are Rimefall Pass, the frozen Drowned Mines, the Bellfounders' Halls, the Cold Furnace and the Hellforge's Heart. **Warmth:** in the cold the ember burns down (faster in a whiteout) and its light shrinks; once it is out, frostbite builds, slowing and then wounding. Touch a brazier to light it and stand in its glow to refill the ember; fire skills, burning weapons and burning monsters help too. Rime-Thralls shatter into ember-sapping ice unless burned, Bellwardens ring a shockwave to dodge-roll through, Slag Golems go molten in fire and brittle in cold, and Hearth-Eaters drink the ember from range unless you stand in firelight. Bosses: the Frostwright (shelter at a lit brazier from his cold snap), Corvane's Echo (break his phylactery) and the Unlit (it snuffs fires, and heals while your ember is out).
-- **The Brass Wyrm.** An optional encounter in the High Roost, a cave off Gloomwood that no quest points to, with a dragon about sixteen levels above the area. He talks first: carry his letter to the captain in Tel Maresh for a reward, challenge him (telegraphed fire breath, a wing buffet that throws the hero, shadowless copies, a flight phase), or rob the hoard while he sleeps for an angrier fight. He yields at a quarter of his life and never dies, then offers one of three items. Once per difficulty. To talk he takes a man's shape, and the same man stands in Emberwatch Camp and Tel Maresh as a hint that the cave exists.
-- **The Underforge.** Finishing Act 3 opens an endless dungeon at every waypoint (per difficulty). Floors are rolled from the run's seed with layouts and monsters from all three acts, one monster level deeper each. A warden seals the stairs on every floor, every fifth floor is a returning boss, and from the third floor down the whole floor carries one to three afflictions that every monster shares. Magic find, gold find and elite density rise with depth, wardens pay out Cinders for the Forge, and clearing a boss floor lets the next descent start below it.
-- **Hirelings.** A captain in every town hires out one companion: a Shieldbearer (melee, tough), a Bowman (ranged) or an Ember-Keeper (fire, and warm to stand beside in Act 3). They fight at the hero's level, follow between areas, mend out of combat, and are brought back at any captain for a fee if they fall.
-- **Shared stash.** The town stash has a second tab that every hero in this browser shares (items and gold), so gear can be passed between heroes. Hardcore heroes have a separate one.
-- **Respec.** Each difficulty finished earns one respec (three in all), spent from the Character or Skills panel: every skill and attribute point comes back to be placed again.
-- **Dodging and sprees.** A dodge roll (1.5 second cooldown) makes the hero untouchable for a moment and cancels a swing or cast. Kills made within four seconds of each other build a spree (Killing Spree at 5, then Rampage, Massacre, Slaughter, Annihilation, Hell Unleashed); each rank adds run speed and experience per kill, and restores some life and mana.
-- **Things to find.** Soul orbs restore life or mana when walked over. A Tithe Imp may hide in any area but the Hollow Cave: it flees, drops gold when struck, and escapes through a portal unless killed. Shrines grant Armor, Combat, Experience, Storm, Fortune or Fleet blessings, refill life and mana, or (Cursed) call a three-wave ambush with a hoard at the end. Killing everything in an area purges it for experience and loot.
-- **Quests.** Cleanse the Hollow Cave (+1 skill point), slay the Drowned Bishop (+5 stat points), destroy the Mother of Cinders to open the road south, finish Act 2's four quests to open the road north, then Act 3's four (light the beacons of Rimefall Pass, the Frostwright, the Last Phylactery, Keep It Lit) to unlock **Nightmare**, then **Hell**: tougher monsters, immunities and resistance penalties.
-- **Hardcore** heroes die permanently. Softcore heroes respawn in town and lose some gold.
+### Classes
+
+| Class | Plays as | Skills |
+|---|---|---|
+| **Reaver** | Melee | Bash, Frenzy, Leap Attack, Whirlwind, War Cry |
+| **Arcanist** | Caster | Fire Bolt, Ice Bolt, Charged Bolt, Frost Nova, Teleport, Fireball, Meteor |
+| **Huntress** | Bows | Power Shot, Multishot, Exploding Arrow, Storm Arrow, Strafe, Critical Eye, Evade |
+| **Necromancer** | Summons, curses, bone and poison | *Summons:* Raise Skeleton (from corpses), Grave Golem, Skeletal Mastery · *Curses and corpses:* Mark of Frailty, Corpse Burst · *Bone and poison:* Bone Shards, Bone Ward, Bone Lance, Bone Storm, Blight Nova |
+| **Forgewright** | Two-handed hammers, constructs, Heat | *Hammers:* Sunder, Anvil Drop, Shockwave, Earthshaker · *Constructs:* Ballista and Bellows turrets, Brass Sentinel golem, Furnace (heals allies near it), Gearwork · *Heat:* Temper, Slag Burst, White Heat |
+| **Hiveborn** | Four-armed insect | *Soldier:* Rend, Carapace, Many Hands, Hold the Line, Fourfold Strike · *Archer:* Loose, Sky Hunter, Volley, Skyfall · *Faith:* Prayer of Mending, Ward of Faith, Congregation, Hymn of the Hive, Sky Above |
+
+- Each level gives 5 stat points and a skill point. Skills have level requirements, prerequisites and synergies, and the Skills panel draws them as a tree: three branches per class, a row per level, a line per prerequisite.
+- Servants that can walk follow you between areas (turrets and furnaces stay where they are built and wind down), and monsters fight them as well as you.
+- **Four arms (Hiveborn).** A one-handed weapon fits in either upper hand; the off-hand one adds 50% of its damage to each blow (more with Many Hands). A two-hander or a bow can be held with a shield or a second weapon beside it. The lower arms are claws, whose damage grows with level and Strength and is added to every melee blow. With a bow, a plain attack shoots at range and claws at close quarters, and an off-hand weapon adds to the claws instead of the arrows.
+- **Heat (Forgewright).** Hammer blows build Heat, shown on a gauge above the experience bar. Temper turns it into fire damage and Slag Burst vents it all as a blast (it costs Heat, not mana). At 100 the smith overheats and burns until Heat falls below 60 or is vented. In Act 3 a Furnace counts as a fire, and a smith at 75 Heat or more is a little warm.
+
+### Acts
+
+| Act | Town | Areas | Bosses |
+|---|---|---|---|
+| **1** | Emberwatch Camp | Cinder Fields, Hollow Cave, Gloomwood, Sunken Chapel, Catacombs 1-2, the Hellforge | Gorvath the Glutton, the Drowned Bishop, Ossuary Warden Krell, Vhorza, Mother of Cinders |
+| **2: The Glass Sea** | Tel Maresh | Ashfall Road, Cistern of Whispers, the Glass Sea, Carrion Mesa, Buried Imhara (the Bazaar, the Hall of Dials), the Noon Vault | Skarn, Karrik the Carrion King, Vizier Ohm-Tet, Old Corvin |
+| **3: The Ember Road** | Emberwatch Ruins | Rimefall Pass, the Drowned Mines, the Bellfounders' Halls, the Cold Furnace, the Hellforge's Heart | The Frostwright, the Echo of Old Corvin, the Unlit |
+
+Areas are randomly generated. Activate waypoints to fast-travel, and cast Town Portal to restock and come back. Every town has a healer, blacksmith and forge, sage, gambler and stash. Killing Vhorza opens the caravan south, killing Old Corvin opens the road back north, and finishing Act 3 unlocks the next difficulty.
+
+- **Act 2.** Sandstorms and quicksand change how the desert plays, and the four bosses change phase as they are wounded.
+- **Act 3: Warmth.** The ember Vhorza left is dying, and Emberwatch lies under snow. In the cold the ember burns down (faster in a whiteout) and its light shrinks; once it is out, frostbite builds, slowing and then wounding. Touch a brazier to light it and stand in its glow to refill the ember. Fire skills, burning weapons and burning monsters help too.
+
+### Monsters
+
+Act 1 has imps that flee when a packmate dies and Hexers that raise them again, plus ghouls, skeletons, archers, bats, hounds, brutes, wraiths and cultists. Champion packs are blue. Uniques are gold, with modifiers like Fire Enchanted, Stone Skin, Extra Fast, Lightning Enchanted, Teleporter and Bombardier. Later monsters each have a rule to learn:
+
+| Monster | Act | Rule |
+|---|---|---|
+| Embalmed Dead | 2 | Rise again unless burned |
+| Mirage Dancer | 2 | Split into copies that cast no shadow |
+| Noon Acolyte | 2 | Ward their allies |
+| Dune Burrower | 2 | Tunnel to you |
+| Carrion Kite | 2 | Heal on corpses |
+| Salt Colossus | 2 | Telegraph their ground slams |
+| Rime-Thrall | 3 | Shatter into ember-sapping ice unless burned |
+| Bellwarden | 3 | Ring a shockwave you dodge-roll through |
+| Slag Golem | 3 | Molten in fire, brittle in cold |
+| Hearth-Eater | 3 | Drink the ember from range unless you stand in firelight |
+| The Frostwright | 3 (boss) | Shelter at a lit brazier from his cold snap |
+| Echo of Old Corvin | 3 (boss) | Break his phylactery |
+| The Unlit | 3 (boss) | Snuffs fires, and heals while your ember is out |
+
+### Quests
+
+| Act | Quest | Reward |
+|---|---|---|
+| 1 | The Hollow Cave | +1 skill point |
+| 1 | The Drowned Bishop | +5 stat points |
+| 1 | Mother of Cinders | The road south opens |
+| 2 | The Black Water | +1 skill point |
+| 2 | The Carrion King | +5 stat points |
+| 2 | The Embalmer | +1 skill point |
+| 2 | The Hollow Sun | The road north opens |
+| 3 | The Ember Road (light the beacons of Rimefall Pass) | +1 skill point |
+| 3 | The Frostwright | +5 stat points |
+| 3 | The Last Phylactery | +1 skill point |
+| 3 | Keep It Lit | Next difficulty unlocked |
+
+### Difficulty
+
+| | |
+|---|---|
+| **Normal → Nightmare → Hell** | Each is unlocked by finishing Act 3 on the one before, with tougher monsters, immunities and resistance penalties |
+| **Hardcore** | Heroes die permanently. Softcore heroes respawn in town and lose some gold |
+
+### Loot
+
+| Rarity | Color |
+|---|---|
+| Normal | White |
+| Socketed | Grey |
+| Magic | Blue |
+| Rare | Yellow |
+| Set | Green |
+| Unique | Gold |
+
+Magic and better items drop unidentified; the sage identifies them for free. Gems in seven types and five grades go into sockets, with different effects in weapons, armor and shields. Your inventory is a grid where items take up space by size. Magic find improves your odds.
+
+### The Forge
+
+A forge stands beside the blacksmith in every town.
+
+| Job | What it does |
+|---|---|
+| **Salvage** | Turns loot into Cinders, and magic or better items into Essences of their element |
+| **Heat** | Adds forge levels up to +10 (4% base damage or defense each, shown as "+7 War Axe"). From +6 a heat can fail and crack the item back a level; on Hardcore a failed heat to +8 or more can shatter it. An optional hammer-timing game adds up to 10% to the chance |
+| **Temper** | Re-rolls one chosen affix |
+| **Quench** | Adds or converts an elemental damage or resistance affix |
+| **Ember-Seal** | Locks an affix against tempering |
+| **Smelt** | Turns three items of one type and rarity into one of the next |
+
+Forge mastery grows with use, improves costs and odds, and teaches socket punching, sealing and smelting legends. Vhorza's ember, once you carry it, makes the forge burn hotter.
+
+### Other features
+
+| Feature | |
+|---|---|
+| **The Underforge** | Finishing Act 3 opens an endless dungeon at every waypoint (per difficulty). Floors are rolled from the run's seed with layouts and monsters from all three acts, one monster level deeper each. A warden seals the stairs on every floor, every fifth floor is a returning boss, and from the third floor down each floor carries one to three afflictions that every monster shares. Magic find, gold find and elite density rise with depth, wardens pay out Cinders, and clearing a boss floor lets the next descent start below it |
+| **The Brass Wyrm** | An optional encounter in the High Roost, a cave off Gloomwood that no quest points to, with a dragon about sixteen levels above the area. Carry his letter to the captain in Tel Maresh for a reward, challenge him (telegraphed fire breath, a wing buffet that throws the hero, shadowless copies, a flight phase), or rob the hoard while he sleeps for an angrier fight. He yields at a quarter of his life and never dies, then offers one of three items. Once per difficulty. To talk he takes a man's shape, and the same man stands in Emberwatch Camp and Tel Maresh as a hint that the cave exists |
+| **Hirelings** | A captain in every town hires out a Shieldbearer (melee, tough), a Bowman (ranged) or an Ember-Keeper (fire, and warm to stand beside in Act 3). They fight at the hero's level, follow between areas, mend out of combat, and are brought back at any captain for a fee if they fall |
+| **Shared stash** | A second stash tab, with items and gold, that every hero in this browser shares. Hardcore heroes have a separate one |
+| **Respec** | One per difficulty finished (three in all), from the Character or Skills panel: every skill and attribute point comes back to be placed again |
+| **Dodge roll** | 1.5 second cooldown. Makes the hero untouchable for a moment and cancels a swing or cast |
+| **Killing sprees** | Kills within four seconds of each other build a spree: Killing Spree at 5, then Rampage, Massacre, Slaughter, Annihilation, Hell Unleashed. Each rank adds run speed and experience per kill, and restores some life and mana |
+| **Soul orbs** | Restore life or mana when walked over |
+| **Tithe Imp** | May hide in any area but the Hollow Cave. It flees, drops gold when struck, and escapes through a portal unless killed |
+| **Shrines** | Armor, Combat, Experience, Storm, Fortune or Fleet blessings, refill life and mana, or (Cursed) a three-wave ambush with a hoard at the end |
+| **Chests and barrels** | Scattered around; some barrels explode |
+| **Area purge** | Killing everything in an area purges it for experience and loot |
 
 Music, ambient sound and weather are all generated in code too; the menu has switches for each.
+
+### Saves
 
 Progress saves automatically to the browser's local storage. To move heroes to another device, use **Export / Import** on the title screen: download a save file or copy a short save code, then load the file or paste the code on the other device. Importing replaces a hero with the same identity and keeps the rest. The shared stash is exported too, and replaces the one on the other device only if that one is empty or you agree.
 
