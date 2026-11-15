@@ -3,6 +3,7 @@ import {
   alpha, art, circle, drawHumanoid, rgbOf, slitEyes, swingPose, ellipse, mix, eyes, fillInk, glow, ink, INK, lin, limb, poly, rad, roundRect, shade,
   type HumanoidLook, type Pose,
 } from './figures';
+import { MONSTERS } from '../game/monsters';
 import { HIRE_LOOKS, WYRM_MAN } from './looks';
 
 export interface MonsterDrawOpts {
@@ -78,8 +79,6 @@ export function drawMonsterShape(ctx: CanvasRenderingContext2D, shape: string, c
       case 'bellows': bellows(ctx, color, s); break;
       case 'sentinel': sentinel(ctx, color, s); break;
       case 'furnace': furnace(ctx, color, s); break;
-      case 'hire_guard':
-      case 'hire_archer':
       case 'wyrm': wyrm(ctx, color, s, !!opts.asleep); break;
       case 'wyrm_man':
         // His monster is drawn at a dragon's scale: bring the man back down to a man's size, and a little over.
@@ -87,8 +86,12 @@ export function drawMonsterShape(ctx: CanvasRenderingContext2D, shape: string, c
         glow(ctx, 0, -26, 30, '#ffd070', 0.16 + 0.05 * Math.sin(t * 2));
         drawHumanoid(ctx, WYRM_MAN, { ...s.pose, dir: 1 }, t);
         break;
-      case 'worker':
-      case 'hire_mage': drawHumanoid(ctx, HIRE_LOOKS[shape], { ...s.pose, dir: 1 }, t); break;
+      case 'humanoid': {
+        const look = MONSTERS[s.id]?.look;
+        if (!look) throw new Error(`${s.id} has the humanoid shape but no look`);
+        drawHumanoid(ctx, HIRE_LOOKS[look], { ...s.pose, dir: 1 }, t);
+        break;
+      }
     }
   } finally {
     ctx.restore();
