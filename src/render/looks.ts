@@ -1,4 +1,5 @@
 import { baseOf, type ClassId, type Item } from '../game/items';
+import type { HumanoidLookId } from '../game/monsters';
 import type { NpcKind } from '../game/world';
 import type { HumanoidLook } from './figures';
 
@@ -245,7 +246,7 @@ const NPC_ACT3: Partial<Record<NpcKind, HumanoidLook>> = {
 };
 
 /** Hirelings: dressed like the watch rather than like anything that lives out there. */
-export const HIRE_LOOKS: Record<string, HumanoidLook> = {
+export const HIRE_LOOKS: Record<HumanoidLookId, HumanoidLook> = {
   hire_guard: {
     body: '#8a8e96', trim: '#2a4a7a', skin: '#c8a080', legs: '#3a3430', boots: '#2a2018', head: 'helm', headColor: '#9aa0aa', weapon: 'sword', weaponColor: '#c8ccd4',
     armor: 'mail', pauldrons: '#8a8e96', tabard: '#2a4a7a', shield: '#2a4a7a', shieldShape: 'kite', build: 1.12, gloves: '#4a3a2a',

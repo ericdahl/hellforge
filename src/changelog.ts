@@ -1,6 +1,13 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.23.2',
+    date: '2026-11-15',
+    notes: [
+      'Shieldbearers and Bowmen look like themselves again. Since the Brass Wyrm arrived in 0.22.0 they had been drawn as small dragons; they always fought as the hirelings they are.',
+    ],
+  },
+  {
     version: '0.23.1',
     date: '2026-11-15',
     notes: [

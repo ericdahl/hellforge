@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.23.2 | | Shieldbearer and Bowman hirelings were drawn as the Brass Wyrm; humanoid creatures now name their outfit in their definition |
 | 0.23.1 | | Skills panel: one Hotbar row showing all four slots; placing a skill swaps it with the slot it moves to |
 | 0.23.0 | | The Brass Wyrm's human form, a stranger in two towns, and a redrawn dragon |
 | 0.22.0 | | The Brass Wyrm: an optional talk-first dragon boss above Gloomwood, with an errand, a fight he yields from, and a hoard to rob |
