@@ -12,6 +12,10 @@ Every change a player can notice is a release. Docs, tests and refactors are not
 4. Commit subject: `Hellforge X.Y.Z: <what changed>`.
 5. Once it's on `master`, which deploys to GitHub Pages, tag the release commit (not the merge commit) with an annotated `vX.Y.Z` tag. Then create a GitHub release titled `X.Y.Z: <What changed>`, with the changelog notes as bullets followed by `_Released YYYY-MM-DD._`.
 
+## Merging
+
+`master` requires the `build` (unit tests and build) and `e2e` (Playwright) checks to pass. Merge a PR with `gh pr merge <n> --merge --auto`: GitHub merges it once both are green, and never if either fails. A plain merge is refused while checks are running.
+
 ## Rules the code relies on
 
 - `src/game/` is the simulation and must not touch the DOM. Randomness goes through the world's seeded RNG (`src/game/rng.ts`), never `Math.random`, so `?seed=` and the tests stay reproducible.
