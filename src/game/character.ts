@@ -419,7 +419,7 @@ export function computeStats(c: Character, buffs: Buffs = {}): Stats {
   const hive = c.classId === 'hiveborn';
   const off = c.equipment.offhand;
   const offWeapon = hive && off && baseOf(off).kind === 'weapon' ? weaponBaseDamage(off) : null;
-  const offShare = offWeapon ? (OFFHAND_SHARE + (p('many_hands')?.pct ?? 0)) / 100 : 0;
+  const offShare = offWeapon ? (OFFHAND_SHARE + (p('many_hands')?.pct ?? 0) + g('offhandPct')) / 100 : 0;
   const carapace = p('carapace');
 
   let armorDef = 0;
@@ -438,7 +438,7 @@ export function computeStats(c: Character, buffs: Buffs = {}): Stats {
   const minDmg = Math.max(1, Math.floor((bmin * (1 + ed / 100) + g('minDmg')) * (1 + attrBonus / 100)));
   const maxDmg = Math.max(minDmg + 1, Math.floor((bmax * (1 + ed / 100) + g('maxDmg')) * (1 + attrBonus / 100)));
 
-  const clawK = hive ? (1 + (carapace?.pct2 ?? 0) / 100) * (1 + (buffs.edPct ?? 0) / 100) * (1 + str / 100) : 0;
+  const clawK = hive ? (1 + ((carapace?.pct2 ?? 0) + g('clawPct')) / 100) * (1 + (buffs.edPct ?? 0) / 100) * (1 + str / 100) : 0;
   const clawMin = Math.floor((1 + c.level * 0.3 + (offWeapon && isBow ? offWeapon.min * offShare : 0)) * clawK);
   const clawMax = Math.floor((2 + c.level * 0.7 + (offWeapon && isBow ? offWeapon.max * offShare : 0)) * clawK);
 

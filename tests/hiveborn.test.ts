@@ -4,6 +4,7 @@ import { AFFIXES, baseOf, makeItem, SETS, UNIQUES, type Item } from '../src/game
 import { MONSTERS } from '../src/game/monsters';
 import { classSkills, SKILL_BY_ID } from '../src/game/skills';
 import { compareEquip, defaultSlot } from '../src/ui/compare';
+import { itemTooltip } from '../src/ui/tooltip';
 import { elemDamage, type Monster, type World } from '../src/game/world';
 import { makeWorld, run } from './helpers';
 
@@ -439,5 +440,60 @@ describe('the faith branch', () => {
     c.skillPoints = 40;
     for (let pass = 0; pass < 6; pass++) for (const s of classSkills('hiveborn')) learnSkill(c, s.id);
     expect(Object.keys(c.skills).sort()).toEqual(classSkills('hiveborn').map((s) => s.id).sort());
+  });
+});
+
+describe('gear made for four arms', () => {
+  const NEW = ['splattered_carapace', 'censer_cowl', 'slayers_grips', 'fine_feather', 'checkered_sash'];
+  const unique = (id: string): Item => {
+    const u = UNIQUES.find((x) => x.id === id)!;
+    return { ...makeItem(u.base, 30, 'unique'), uniqueId: u.id, name: u.name, identified: true, mods: u.mods.map((md) => ({ stat: md.stat, value: md.max })) } as Item;
+  };
+
+  it('covers the slots the Hiveborn had no unique for: armour, helm, gloves, belt and amulet', () => {
+    const kinds = NEW.map((id) => baseOf(UNIQUES.find((u) => u.id === id)!.base).kind).sort();
+    expect(kinds).toEqual(['amulet', 'armor', 'belt', 'gloves', 'helm']);
+    expect(new Set(UNIQUES.map((u) => u.id)).size).toBe(UNIQUES.length);
+    for (const id of NEW) expect(itemTooltip(unique(id), hive())).not.toMatch(/undefined|NaN/);
+  });
+
+  it('claw gear sharpens the claws, and stacks with Carapace', () => {
+    const c = hive();
+    const before = computeStats(c);
+    c.equipment.body = unique('splattered_carapace');
+    const plated = computeStats(c);
+    expect(plated.clawMax).toBeGreaterThanOrEqual(Math.floor(before.clawMax * 1.33));
+    expect(plated.def).toBeGreaterThan(before.def);
+    c.equipment.belt = unique('checkered_sash');
+    const both = computeStats(c);
+    expect(both.clawMax).toBeGreaterThan(plated.clawMax);
+    c.skills.carapace = 10;
+    expect(computeStats(c).clawMax).toBeGreaterThan(both.clawMax);
+  });
+
+  it('the Slayer’s grips get more out of an off-hand weapon, and nothing out of an empty hand', () => {
+    const c = hive();
+    bare(c);
+    wear(c, 'long_sword');
+    const k = 1 + computeStats(c).str / 100;
+    c.equipment.gloves = unique('slayers_grips');
+    const kg = 1 + computeStats(c).str / 100;
+    expect(computeStats(c).maxDmg).toBe(Math.floor(13 * kg));
+    wear(c, 'long_sword', 'offhand');
+    expect(computeStats(c).maxDmg).toBe(Math.floor((13 + 13 * ((OFFHAND_SHARE + 30) / 100)) * kg));
+    expect(kg).toBe(k);
+  });
+
+  it('means nothing to the two-armed, and the tooltip says so', () => {
+    const r = createCharacter('r', 'reaver');
+    const before = computeStats(r);
+    r.equipment.belt = unique('checkered_sash');
+    r.equipment.gloves = unique('slayers_grips');
+    const after = computeStats(r);
+    expect(after.clawMax).toBe(0);
+    expect(after.maxDmg).toBe(Math.floor(before.maxDmg * (1 + after.str / 100) / (1 + before.str / 100)));
+    expect(itemTooltip(unique('checkered_sash'), r)).toContain('Claw Damage (no effect)');
+    expect(itemTooltip(unique('slayers_grips'), r)).toContain('(no effect)');
+    expect(itemTooltip(unique('checkered_sash'), hive())).not.toContain('(no effect)');
   });
 });

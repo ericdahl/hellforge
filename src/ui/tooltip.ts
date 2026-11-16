@@ -1,4 +1,4 @@
-import { computeStats, equippedItems, requirementError, type Character } from '../game/character';
+import { computeStats, equippedItems, requirementError, type Character, fourArmed } from '../game/character';
 import {
   baseOf, describeMods, displayName, FORGE_STEP, forgeLevel, gemMods, itemColor, itemDefense, modTotal, SET_BY_ID, weaponBaseDamage,
   type Item, type Mod,
@@ -66,9 +66,10 @@ export function itemTooltip(item: Item, c: Character, extra?: string): string {
   return lines.join('');
 }
 
-/** Mod text for this hero, flagging another class's skill bonus, which does nothing for them. */
+/** Mod text for this hero, flagging what does nothing for them: another class's skill bonus, or claws and off-hand weapons for the two-armed. */
 function modLines(mods: Mod[], c: Character): { text: string; wasted: boolean }[] {
-  const wasted = new Set(describeMods(mods.filter((md) => md.stat.startsWith('skills_') && md.stat !== `skills_${c.classId}`)));
+  const idle = (md: Mod) => (md.stat.startsWith('skills_') && md.stat !== `skills_${c.classId}`) || ((md.stat === 'clawPct' || md.stat === 'offhandPct') && !fourArmed(c));
+  const wasted = new Set(describeMods(mods.filter(idle)));
   return describeMods(mods).map((text) => (wasted.has(text) ? { text: `${text} (no effect)`, wasted: true } : { text, wasted: false }));
 }
 
