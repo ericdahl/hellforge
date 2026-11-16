@@ -28,7 +28,7 @@ URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` ski
 | Items | Tap an item, then a button | Hover an item and press `E` equip/unequip, `U` use, `S` sell, `B` buy, `D` drop, `X` stash/inventory, `G` socket; right-click for the main action |
 | The Forge | Tap an item, then a job; tap **Strike!** in the timing game | Hover an item and press `H` heat, `J` strike by hand, `T` temper, `Q` quench, `L` ember-seal, `P` punch socket, `M` crucible, `S` salvage; digits pick from a list, `Space` strikes |
 
-Panels pause the game.
+Panels pause the game
 
 ## The game
 
