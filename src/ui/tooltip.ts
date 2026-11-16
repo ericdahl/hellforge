@@ -1,8 +1,9 @@
 import { computeStats, equippedItems, requirementError, type Character, fourArmed } from '../game/character';
 import {
   baseOf, describeMods, displayName, FORGE_STEP, forgeLevel, gemMods, itemColor, itemDefense, modTotal, SET_BY_ID, weaponBaseDamage,
-  type Item, type Mod,
+  isTreeStat, treeOf, type Item, type Mod,
 } from '../game/items';
+import { branchInfo } from '../game/skilltree';
 import { esc } from './dom';
 
 /** HTML description of an item, in the classic tooltip style. */
@@ -68,7 +69,8 @@ export function itemTooltip(item: Item, c: Character, extra?: string): string {
 
 /** Mod text for this hero, flagging what does nothing for them: another class's skill bonus, or claws and off-hand weapons for the two-armed. */
 function modLines(mods: Mod[], c: Character): { text: string; wasted: boolean }[] {
-  const idle = (md: Mod) => (md.stat.startsWith('skills_') && md.stat !== `skills_${c.classId}`) || ((md.stat === 'clawPct' || md.stat === 'offhandPct') && !fourArmed(c));
+  const idle = (md: Mod) => (md.stat.startsWith('skills_') && md.stat !== `skills_${c.classId}`) || ((md.stat === 'clawPct' || md.stat === 'offhandPct') && !fourArmed(c))
+    || (isTreeStat(md.stat) && branchInfo(treeOf(md.stat))?.classId !== c.classId);
   const wasted = new Set(describeMods(mods.filter(idle)));
   return describeMods(mods).map((text) => (wasted.has(text) ? { text: `${text} (no effect)`, wasted: true } : { text, wasted: false }));
 }

@@ -1,9 +1,11 @@
 import {
   BASES, baseOf, itemDefense, itemMods, makeItem, SET_BY_ID, weaponBaseDamage,
   type BaseItem, type ClassId, type Item, type Mod, type PotionInfo, type Slot, type StatKey,
+  isTreeStat, treeOf,
 } from './items';
 import type { HirelingState } from './hireling';
 import { classSkills, SKILL_BY_ID, type SkillDef } from './skills';
+import { branchOfSkill } from './skilltree';
 
 export interface ClassDef {
   id: ClassId;
@@ -231,11 +233,18 @@ export function skillBonusFromItems(c: Character): number {
   return v;
 }
 
-/** Effective skill level: hard points plus +skills (only for learned skills). */
-export function skillLevel(c: Character, id: string, bonus = skillBonusFromItems(c)): number {
+/** Bonuses from worn gear to whole branches of the skill tree, by branch id. */
+export function branchBonusFromItems(c: Character): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const md of equippedMods(c)) if (isTreeStat(md.stat)) out[treeOf(md.stat)] = (out[treeOf(md.stat)] ?? 0) + md.value;
+  return out;
+}
+
+/** Effective skill level: hard points plus +skills to the class and to the skill's branch (only for learned skills). */
+export function skillLevel(c: Character, id: string, bonus = skillBonusFromItems(c), branches = branchBonusFromItems(c)): number {
   if (id === 'attack') return 1;
   const hard = c.skills[id] ?? 0;
-  return hard > 0 ? hard + bonus : 0;
+  return hard > 0 ? hard + bonus + (branches[branchOfSkill(id) ?? ''] ?? 0) : 0;
 }
 
 export function canLearn(c: Character, s: SkillDef): string | null {
@@ -389,7 +398,9 @@ export function computeStats(c: Character, buffs: Buffs = {}): Stats {
   for (const md of equippedMods(c)) sum[md.stat] = (sum[md.stat] ?? 0) + md.value;
   const g = (k: StatKey) => sum[k] ?? 0;
   const bonus = g('allSkills') + g(`skills_${c.classId}` as StatKey);
-  const lvl = (id: string) => skillLevel(c, id, bonus);
+  const branches: Record<string, number> = {};
+  for (const [k, v] of Object.entries(sum)) if (isTreeStat(k)) branches[treeOf(k)] = v ?? 0;
+  const lvl = (id: string) => skillLevel(c, id, bonus, branches);
   const p = (id: string) => {
     const l = lvl(id);
     return l > 0 ? SKILL_BY_ID[id].params(l) : null;
