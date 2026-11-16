@@ -1,4 +1,5 @@
 import { Rng } from './rng';
+import { branchInfo } from './skilltree';
 
 export type StatKey =
   | 'str' | 'dex' | 'vit' | 'ene' | 'allAttr'
@@ -11,7 +12,13 @@ export type StatKey =
   | 'lifeRegen' | 'manaRegen' | 'allSkills' | 'skills_reaver' | 'skills_arcanist' | 'skills_huntress' | 'skills_necromancer' | 'skills_forgewright' | 'skills_hiveborn'
   | 'block' | 'crit' | 'dmgReduce' | 'lifeOnKill' | 'manaOnKill'
   /** The four-armed only: more damage from the claws, and a bigger share of an off-hand weapon's damage in each blow. */
-  | 'clawPct' | 'offhandPct';
+  | 'clawPct' | 'offhandPct'
+  /** Raises every learned skill in one branch of a class's tree: `tree_faith`, `tree_cold` and so on. */
+  | TreeStat;
+
+export type TreeStat = `tree_${string}`;
+export const isTreeStat = (stat: string): stat is TreeStat => stat.startsWith('tree_');
+export const treeOf = (stat: TreeStat) => stat.slice(5);
 
 export interface Mod {
   stat: StatKey;
@@ -618,6 +625,103 @@ export const SETS: SetDef[] = [
       4: [{ stat: 'skills_hiveborn', value: 2 }, { stat: 'ias', value: 15 }, { stat: 'allRes', value: 15 }],
     },
   },
+  // A second set for each class. Where the first raises all of a class's skills, these each lean into one branch of its tree.
+  {
+    id: 'redteeth',
+    name: 'Howl of the Red Teeth',
+    classId: 'reaver',
+    pieces: [
+      { id: 'redteeth_helm', name: 'Red Teeth Warhelm', base: 'skull_cap', mods: [m('life', 20, 20), m('mana', 15, 15)] },
+      { id: 'redteeth_hide', name: 'Red Teeth Hide', base: 'studded_leather', mods: [m('defPct', 50, 50), m('vit', 8, 8)] },
+      { id: 'redteeth_girdle', name: 'Red Teeth Girdle', base: 'belt', mods: [m('life', 25, 25), m('lifeOnKill', 3, 3)] },
+      { id: 'redteeth_totem', name: 'Red Teeth Totem', base: 'amulet', mods: [m('mana', 20, 20), m('allRes', 8, 8)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'life', value: 30 }],
+      3: [{ stat: 'mana', value: 30 }, { stat: 'lifeOnKill', value: 4 }],
+      4: [{ stat: 'tree_warcries', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'frw', value: 15 }],
+    },
+  },
+  {
+    id: 'winterwalker',
+    name: "Winterwalker's Regalia",
+    classId: 'arcanist',
+    pieces: [
+      { id: 'winterwalker_circlet', name: "Winterwalker's Circlet", base: 'circlet', mods: [m('mana', 25, 25), m('coldRes', 20, 20)] },
+      { id: 'winterwalker_robe', name: "Winterwalker's Robe", base: 'leather_armor', mods: [m('defPct', 40, 40), m('life', 20, 20)] },
+      { id: 'winterwalker_hand', name: 'The Bone-White Hand', base: 'heavy_gloves', mods: [m('fcr', 10, 10), m('coldMin', 2, 2), m('coldMax', 6, 6)] },
+      { id: 'winterwalker_sash', name: "Winterwalker's Sash", base: 'light_belt', mods: [m('ene', 8, 8), m('manaRegen', 10, 10)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'mana', value: 30 }],
+      3: [{ stat: 'fcr', value: 15 }, { stat: 'coldRes', value: 25 }],
+      4: [{ stat: 'tree_cold', value: 3 }, { stat: 'manaRegen', value: 20 }, { stat: 'life', value: 30 }],
+    },
+  },
+  {
+    id: 'grimhunter',
+    name: "The Grim Hunter's Quiver",
+    classId: 'huntress',
+    pieces: [
+      { id: 'grimhunter_hood', name: "Grim Hunter's Hood", base: 'cap', mods: [m('dex', 6, 6), m('mana', 15, 15)] },
+      { id: 'grimhunter_brigandine', name: "Grim Hunter's Brigandine", base: 'hard_leather', mods: [m('defPct', 45, 45), m('life', 20, 20)] },
+      { id: 'grimhunter_bracers', name: "Grim Hunter's Bracers", base: 'leather_gloves', mods: [m('ias', 10, 10), m('fireMin', 1, 1), m('fireMax', 5, 5)] },
+      { id: 'grimhunter_treads', name: "Grim Hunter's Treads", base: 'boots', mods: [m('frw', 15, 15), m('lightRes', 20, 20)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'ar', value: 80 }],
+      3: [{ stat: 'mana', value: 30 }, { stat: 'ias', value: 10 }],
+      4: [{ stat: 'tree_arrows', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'manaOnKill', value: 3 }],
+    },
+  },
+  {
+    id: 'expelled',
+    name: "The Expelled Scholar's Effects",
+    classId: 'necromancer',
+    pieces: [
+      { id: 'expelled_hood', name: "Scholar's Threadbare Hood", base: 'cap', mods: [m('mana', 20, 20), m('ene', 5, 5)] },
+      { id: 'expelled_robe', name: "Scholar's Stained Robe", base: 'leather_armor', mods: [m('life', 25, 25), m('defPct', 35, 35)] },
+      { id: 'expelled_belt', name: "Fencer's Belt", base: 'sash', mods: [m('dex', 8, 8), m('frw', 10, 10)] },
+      { id: 'expelled_ring', name: 'The Ring He Never Earned', base: 'ring', mods: [m('mana', 20, 20), m('allRes', 8, 8)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'mana', value: 25 }],
+      3: [{ stat: 'life', value: 30 }, { stat: 'allRes', value: 10 }],
+      4: [{ stat: 'tree_summoning', value: 3 }, { stat: 'fcr', value: 15 }, { stat: 'manaOnKill', value: 3 }],
+    },
+  },
+  {
+    id: 'truestone',
+    name: 'The Truestone Foundry',
+    classId: 'forgewright',
+    pieces: [
+      { id: 'truestone_visor', name: 'Truestone Visor', base: 'skull_cap', mods: [m('life', 20, 20), m('lightRes', 20, 20)] },
+      { id: 'truestone_apron', name: 'Truestone Apron', base: 'ring_mail', mods: [m('defPct', 55, 55), m('vit', 8, 8)] },
+      { id: 'truestone_gauntlets', name: 'Truestone Gauntlets', base: 'chain_gloves', mods: [m('str', 8, 8), m('mana', 20, 20)] },
+      { id: 'truestone_treads', name: 'Truestone Treads', base: 'chain_boots', mods: [m('frw', 15, 15), m('life', 20, 20)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'defPct', value: 40 }],
+      3: [{ stat: 'life', value: 40 }, { stat: 'mana', value: 25 }],
+      4: [{ stat: 'tree_constructs', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'dmgReduce', value: 3 }],
+    },
+  },
+  {
+    id: 'painted',
+    name: 'Vestments of the Painted Faithful',
+    classId: 'hiveborn',
+    pieces: [
+      { id: 'painted_cowl', name: 'Painted Cowl', base: 'cap', mods: [m('mana', 20, 20), m('ene', 5, 5)] },
+      { id: 'painted_vestment', name: 'Painted Vestment', base: 'hard_leather', mods: [m('defPct', 45, 45), m('life', 20, 20)] },
+      { id: 'painted_chain', name: 'Censer on a Painted Chain', base: 'amulet', mods: [m('lifeRegen', 2, 2), m('allRes', 8, 8)] },
+      { id: 'painted_sash', name: 'Painted Sash', base: 'sash', mods: [m('mana', 15, 15), m('vit', 6, 6)] },
+    ],
+    bonuses: {
+      2: [{ stat: 'mana', value: 30 }],
+      3: [{ stat: 'lifeRegen', value: 3 }, { stat: 'allRes', value: 10 }],
+      4: [{ stat: 'tree_faith', value: 3 }, { stat: 'life', value: 30 }, { stat: 'fcr', value: 15 }],
+    },
+  },
   {
     id: 'imharan',
     name: 'Regalia of Lost Imhara',
@@ -957,7 +1061,7 @@ export function describeMods(mods: Mod[]): string[] {
       done.add(pair[0]).add(pair[1]);
       continue;
     }
-    lines.push(STAT_TEXT[st](sum[st]!));
+    lines.push(isTreeStat(st) ? `+${sum[st]} to ${branchInfo(treeOf(st))?.name ?? treeOf(st)} Skills` : STAT_TEXT[st](sum[st]!));
     done.add(st);
   }
   return lines;

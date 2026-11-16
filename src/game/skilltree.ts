@@ -46,6 +46,21 @@ export const SKILL_TREES: Record<ClassId, BranchDef[]> = {
   ],
 };
 
+/** Which branch each skill is in, and which class each branch belongs to. Branch ids are unique across classes. */
+const BRANCH_OF: Record<string, string> = {};
+const BRANCH_INFO: Record<string, { name: string; classId: ClassId }> = {};
+for (const [classId, branches] of Object.entries(SKILL_TREES) as [ClassId, BranchDef[]][]) {
+  for (const b of branches) {
+    BRANCH_INFO[b.id] = { name: b.name, classId };
+    for (const entry of b.skills) BRANCH_OF[typeof entry === 'string' ? entry : entry[0]] = b.id;
+  }
+}
+
+/** The branch a skill belongs to, or undefined for the plain attack. */
+export const branchOfSkill = (skillId: string): string | undefined => BRANCH_OF[skillId];
+/** A branch's name and class, by its id. */
+export const branchInfo = (branchId: string): { name: string; classId: ClassId } | undefined => BRANCH_INFO[branchId];
+
 export interface TreeNode {
   skill: SkillDef;
   branch: string;

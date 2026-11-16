@@ -43,8 +43,10 @@ describe('item data', () => {
     const rng = new Rng(3);
     let own = 0;
     const n = 2000;
-    for (let i = 0; i < n; i++) if (generateItem(rng, 30, { rarity: 'set', classId: 'necromancer' }).setId === 'bonewright') own++;
-    // Its four pieces count three times over, so they come up well above their plain share (which is under a tenth).
+    const mine = new Set(SETS.filter((x) => x.classId === 'necromancer').map((x) => x.id));
+    for (let i = 0; i < n; i++) if (mine.has(generateItem(rng, 30, { rarity: 'set', classId: 'necromancer' }).setId!)) own++;
+    // The pieces of its own two sets count three times over, so they come up well above their plain share (an eighth).
+    expect(mine.size).toBe(2);
     expect(own / n).toBeGreaterThan(0.2);
     expect(own / n).toBeLessThan(0.44);
   });

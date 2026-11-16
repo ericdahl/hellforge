@@ -1,6 +1,18 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.25.0',
+    date: '2026-11-16',
+    notes: [
+      'A second set for every class. Each class\'s first set raises all of its skills; the new ones each lean into one branch of the skill tree, so there is now a choice to make.',
+      'Worn in full, a new set adds +3 to every skill you have learned in its branch. Items can now say "+3 to Faith Skills" or "+3 to Cold Skills", and the Skills panel shows the bonus on those skills only.',
+      'Reaver: Howl of the Red Teeth (Warcries). Arcanist: Winterwalker\'s Regalia (Cold). Huntress: The Grim Hunter\'s Quiver (Arrowcraft).',
+      'Necromancer: The Expelled Scholar\'s Effects (Summoning). Forgewright: The Truestone Foundry (Constructs). Hiveborn: Vestments of the Painted Faithful (Faith).',
+      'All six are four pieces on light gear you can wear early, and like the first sets their pieces drop more often for the class they were made for.',
+      'A bonus to another class\'s branch is marked "(no effect)" on the item.',
+    ],
+  },
+  {
     version: '0.24.0',
     date: '2026-11-16',
     notes: [

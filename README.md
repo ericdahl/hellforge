@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.25.0 | | A second set per class, each raising one branch of the skill tree by 3 (new `tree_<branch>` stat) |
 | 0.24.0 | | Five Hiveborn uniques (armour, helm, gloves, belt, amulet) and two new stats: claw damage and off-hand weapon share |
 | 0.23.2 | | Shieldbearer and Bowman hirelings were drawn as the Brass Wyrm; humanoid creatures now name their outfit in their definition |
 | 0.23.1 | | Skills panel: one Hotbar row showing all four slots; placing a skill swaps it with the slot it moves to |
