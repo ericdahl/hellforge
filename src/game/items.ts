@@ -9,7 +9,9 @@ export type StatKey =
   | 'fireMin' | 'fireMax' | 'coldMin' | 'coldMax' | 'lightMin' | 'lightMax' | 'poisonDmg'
   | 'lifeSteal' | 'manaSteal' | 'ias' | 'frw' | 'fcr' | 'mf' | 'gf' | 'thorns'
   | 'lifeRegen' | 'manaRegen' | 'allSkills' | 'skills_reaver' | 'skills_arcanist' | 'skills_huntress' | 'skills_necromancer' | 'skills_forgewright' | 'skills_hiveborn'
-  | 'block' | 'crit' | 'dmgReduce' | 'lifeOnKill' | 'manaOnKill';
+  | 'block' | 'crit' | 'dmgReduce' | 'lifeOnKill' | 'manaOnKill'
+  /** The four-armed only: more damage from the claws, and a bigger share of an off-hand weapon's damage in each blow. */
+  | 'clawPct' | 'offhandPct';
 
 export interface Mod {
   stat: StatKey;
@@ -451,6 +453,12 @@ export const UNIQUES: UniqueDef[] = [
   U('bellowsmaw', 'Bellowsmaw', 'war_hammer', 11, [m('skills_forgewright', 2, 2), m('edPct', 90, 120), m('fireMin', 4, 4), m('fireMax', 14, 14), m('fireRes', 25, 25)]),
   U('quenchers_mitts', "Quencher's Mitts", 'heavy_gloves', 9, [m('skills_forgewright', 1, 1), m('ias', 15, 15), m('fireRes', 30, 30), m('str', 8, 8)]),
   U('anvil_of_imhara', 'Anvil of Imhara', 'obsidian_maul', 24, [m('skills_forgewright', 2, 2), m('edPct', 130, 170), m('crit', 12, 12), m('str', 15, 15), m('allRes', 12, 12)]),
+  // Gear that only a Hiveborn gets the best of: plates, a cowl, and things for the lower arms and the off hand.
+  U('splattered_carapace', 'The Splattered Carapace', 'scale_mail', 14, [m('defPct', 80, 110), m('clawPct', 35, 35), m('life', 30, 30), m('dmgReduce', 3, 3)]),
+  U('censer_cowl', "Censer-Bearer's Cowl", 'skull_cap', 7, [m('skills_hiveborn', 1, 1), m('mana', 25, 25), m('allRes', 10, 10), m('lifeRegen', 2, 2)]),
+  U('slayers_grips', 'Twin Grips of the Slayer', 'chain_gloves', 13, [m('offhandPct', 30, 30), m('ias', 15, 15), m('dex', 10, 10), m('ar', 50, 50)]),
+  U('fine_feather', 'A Very Fine Feather', 'amulet', 10, [m('skills_hiveborn', 1, 1), m('crit', 10, 10), m('ar', 60, 60), m('frw', 10, 10)]),
+  U('checkered_sash', 'The Checkered Sash', 'light_belt', 8, [m('clawPct', 25, 25), m('str', 8, 8), m('vit', 8, 8), m('allRes', 8, 8)]),
   U('first_claw', 'Firstclaw', 'hand_axe', 4, [m('skills_hiveborn', 1, 1), m('edPct', 60, 90), m('ias', 15, 15), m('life', 12, 12)]),
   U('free_queens_fang', "The Free Queen's Fang", 'jambiya', 19, [m('skills_hiveborn', 2, 2), m('edPct', 110, 150), m('ias', 20, 20), m('poisonDmg', 30, 30), m('dex', 12, 12)]),
   U('skywatcher', 'Skywatcher', 'long_bow', 10, [m('skills_hiveborn', 2, 2), m('edPct', 80, 110), m('crit', 12, 12), m('ar', 60, 60)]),
@@ -917,6 +925,8 @@ const STAT_TEXT: Record<StatKey, (v: number) => string> = {
   skills_necromancer: (v) => `+${v} to Necromancer Skills`,
   skills_forgewright: (v) => `+${v} to Forgewright Skills`,
   skills_hiveborn: (v) => `+${v} to Hiveborn Skills`,
+  clawPct: (v) => `+${v}% Claw Damage`,
+  offhandPct: (v) => `Off-Hand Weapon Adds ${v}% More of Its Damage`,
   block: (v) => `${v}% Increased Chance of Blocking`,
   crit: (v) => `${v}% Chance of Deadly Strike`,
   dmgReduce: (v) => `Damage Reduced by ${v}`,

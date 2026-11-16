@@ -1,6 +1,17 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.24.0',
+    date: '2026-11-16',
+    notes: [
+      'Five new uniques for the Hiveborn, which until now had nothing unique to wear but weapons.',
+      'The Splattered Carapace is body armour with a Soldier\'s paint on it: +35% claw damage. The Checkered Sash is a belt that sharpens the claws by another 25%.',
+      'Twin Grips of the Slayer are gloves for a weapon in each hand: an off-hand weapon adds 30% more of its damage to every blow.',
+      'Censer-Bearer\'s Cowl is a helm for the faithful, and A Very Fine Feather is an amulet for anyone who likes to shoot at things with wings. Both add to Hiveborn skills.',
+      'Claw and off-hand bonuses do nothing for heroes with only two arms, and the item says so.',
+    ],
+  },
+  {
     version: '0.23.2',
     date: '2026-11-15',
     notes: [
