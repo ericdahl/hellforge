@@ -31,24 +31,31 @@ jobs:
         run: |
           version=$(node -p 'require("./package.json").version')
           tag="v$version"
-          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-            echo "$tag already exists"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag is already released"
             exit 0
           fi
 
-          # A PR merge commit's second parent is the PR's last commit, which is what shipped.
-          if git rev-parse -q --verify HEAD^2 >/dev/null; then
-            target=$(git rev-parse HEAD^2)
-          else
-            target=$(git rev-parse HEAD)
-          fi
-
-          subject=$(git log -1 --format=%s --fixed-strings --grep="Hellforge $version: " "$target")
-          what=${subject#"Hellforge $version: "}
-          if [ -z "$subject" ] || [ -z "$what" ]; then
+          # The release commit: the newest one whose subject starts "Hellforge X.Y.Z: ".
+          # A hash is 40 characters, so the subject starts at column 42.
+          line=$(git log --format='%H %s' HEAD | awk -v p="Hellforge $version: " 'index(substr($0, 42), p) == 1 { print; exit }')
+          release=${line%% *}
+          what=${line#*"Hellforge $version: "}
+          if [ -z "$line" ] || [ -z "$what" ]; then
             echo "::error::No commit with subject 'Hellforge $version: ...' found"
             exit 1
           fi
+          # Tag what shipped: the last commit of the PR that brought the release commit in, so
+          # fixes pushed to that PR after the bump are included. Without a merge, the release commit.
+          target=$release
+          for c in $(git rev-list --first-parent --reverse "$release..HEAD"); do
+            if git merge-base --is-ancestor "$release" "$c"; then
+              if git rev-parse -q --verify "$c^2" >/dev/null && git merge-base --is-ancestor "$release" "$c^2"; then
+                target=$(git rev-parse "$c^2")
+              fi
+              break
+            fi
+          done
           what="$(echo "${what:0:1}" | tr '[:lower:]' '[:upper:]')${what:1}"
 
           node --experimental-strip-types -e '
@@ -60,8 +67,13 @@ jobs:
             });
           ' "$version"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898289+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$tag" "$target" -m "Hellforge $version: $what"
-          git push origin "$tag"
+          # A run that tagged but failed to release only needs the release on a re-run.
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag exists; creating its release"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898289+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" "$target" -m "Hellforge $version: $what"
+            git push origin "$tag"
+          fi
           gh release create "$tag" --verify-tag --title "$version: $what" --notes-file notes.md
