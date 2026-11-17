@@ -909,6 +909,8 @@ button {
 .hud.has-ember .msgs { top: calc(44px + var(--safe-t)); }
 /* With a mouse the skill bar sits over the middle of the bottom row, so the Heat gauge goes above it. */
 .mouse .heat { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(128px + var(--safe-b)); width: 260px; margin: 0; }
+/* ...and the interact button moves up above the gauge rather than covering it. */
+.hud.mouse.has-heat .ctxbtn { bottom: calc(152px + var(--safe-b)); }
 /* ------------------------------------------------------------------ the forge */
 
 .panel.forge { border-color: #7a4a26; }

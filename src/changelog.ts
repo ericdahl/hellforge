@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.25.1',
+    date: '2026-11-17',
+    notes: [
+      'Bows in the inventory now stand upright and fit inside their slot. Bigger bows like the Long Bow used to lean over and get cut off at the edge.',
+      'Forgewright, playing with a mouse: the button to talk to someone or pick something up no longer covers the Heat gauge. It now sits just above it.',
+    ],
+  },
+  {
     version: '0.25.0',
     date: '2026-11-16',
     notes: [
