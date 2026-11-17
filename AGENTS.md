@@ -10,7 +10,7 @@ Every change a player can notice is a release. Docs, tests and refactors are not
 2. Add an entry to the top of `src/changelog.ts` (`tests/changelog.test.ts` fails if it doesn't match `package.json`). Players read it in game: say what they will see, in plain sentences, not what changed in the code.
 3. Add a row to the top of the README's **Versions** table, leaving **Commit** blank.
 4. Commit subject: `Hellforge X.Y.Z: <what changed>`.
-5. Once it's on `master`, which deploys to GitHub Pages, tag the release commit (not the merge commit) with an annotated `vX.Y.Z` tag. Then create a GitHub release titled `X.Y.Z: <What changed>`, with the changelog notes as bullets followed by `_Released YYYY-MM-DD._`.
+5. Once it's on `master`, which deploys to GitHub Pages, `.github/workflows/release.yml` tags the PR's last commit (not the merge commit) with an annotated `vX.Y.Z` tag and creates a GitHub release titled `X.Y.Z: <What changed>`, with the changelog notes as bullets followed by `_Released YYYY-MM-DD._`. Don't do this by hand. It only releases the version in `package.json`, so put one release in each PR.
 
 ## Merging
 

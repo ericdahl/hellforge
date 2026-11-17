@@ -1,0 +1,67 @@
+name: Tag and release
+
+# Cloud sessions can't push tags or create releases, so master does it for them.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Tag and release the package.json version if it is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists"
+            exit 0
+          fi
+
+          # A PR merge commit's second parent is the PR's last commit, which is what shipped.
+          if git rev-parse -q --verify HEAD^2 >/dev/null; then
+            target=$(git rev-parse HEAD^2)
+          else
+            target=$(git rev-parse HEAD)
+          fi
+
+          subject=$(git log -1 --format=%s --fixed-strings --grep="Hellforge $version: " "$target")
+          what=${subject#"Hellforge $version: "}
+          if [ -z "$subject" ] || [ -z "$what" ]; then
+            echo "::error::No commit with subject 'Hellforge $version: ...' found"
+            exit 1
+          fi
+          what="$(echo "${what:0:1}" | tr '[:lower:]' '[:upper:]')${what:1}"
+
+          node --experimental-strip-types -e '
+            import("./src/changelog.ts").then(({ CHANGELOG }) => {
+              const e = CHANGELOG.find((c) => c.version === process.argv[1]);
+              if (!e) throw new Error(`no changelog entry for ${process.argv[1]}`);
+              const notes = e.notes.map((n) => `- ${n}`).join("\n");
+              require("fs").writeFileSync("notes.md", `${notes}\n\n_Released ${e.date}._\n`);
+            });
+          ' "$version"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898289+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" "$target" -m "Hellforge $version: $what"
+          git push origin "$tag"
+          gh release create "$tag" --verify-tag --title "$version: $what" --notes-file notes.md
