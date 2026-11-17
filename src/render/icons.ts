@@ -25,19 +25,32 @@ function paint(ctx: CanvasRenderingContext2D, b: BaseItem, w: number, h: number)
     case 'weapon': {
       ctx.save();
       ctx.translate(W / 2, H / 2);
-      ctx.rotate(-Math.PI / 4 * (w > 1 ? 0.6 : 0));
+      if (b.cat !== 'bow') ctx.rotate(-Math.PI / 4 * (w > 1 ? 0.6 : 0));
       const L = H * 0.9;
       if (b.cat === 'bow') {
-        ctx.strokeStyle = '#8a5f35';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(-W * 0.55, 0, L * 0.62, -0.9, 0.9);
-        ctx.stroke();
+        // Upright, string on the left, limbs bowing right; sized to stay inside the slot.
+        const tip = H * 0.44;
+        const bulge = W * 0.55;
+        const sx = -W * 0.3;
+        const r = (tip * tip + bulge * bulge) / (2 * bulge);
+        const cx = sx + bulge - r;
+        const a = Math.asin(tip / r);
         ctx.strokeStyle = '#ddd';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(-W * 0.55 + Math.cos(-0.9) * L * 0.62, Math.sin(-0.9) * L * 0.62);
-        ctx.lineTo(-W * 0.55 + Math.cos(0.9) * L * 0.62, Math.sin(0.9) * L * 0.62);
+        ctx.moveTo(sx, -tip);
+        ctx.lineTo(sx, tip);
+        ctx.stroke();
+        ctx.strokeStyle = '#8a5f35';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(cx, 0, r, -a, a);
+        ctx.stroke();
+        ctx.strokeStyle = '#4a3220';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(sx + bulge, -H * 0.07);
+        ctx.lineTo(sx + bulge, H * 0.07);
         ctx.stroke();
       } else if (b.cat === 'staff' || b.cat === 'wand') {
         ctx.strokeStyle = b.cat === 'wand' ? '#d9ceb2' : '#7a5530';
