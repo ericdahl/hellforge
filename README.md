@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.25.2 | | Town Portal opens a portal and leaves you to step through it, instead of taking you to town at once |
 | 0.25.1 | | Bow icons drawn upright and inside their inventory slot; desktop interact button clears the Heat gauge |
 | 0.25.0 | | A second set per class, each raising one branch of the skill tree by 3 (new `tree_<branch>` stat) |
 | 0.24.0 | | Five Hiveborn uniques (armour, helm, gloves, belt, amulet) and two new stats: claw damage and off-hand weapon share |

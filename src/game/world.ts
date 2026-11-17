@@ -1532,7 +1532,7 @@ export class World {
     this.portal = { area: this.area.def.id, x: spot.x + 0.5, y: spot.y + 0.5 };
     this.fx({ kind: 'portal_open', x: this.portal.x, y: this.portal.y, dur: 0.8 });
     this.sound('portal');
-    this.cmdInteract({ kind: 'portal' });
+    // The portal stands open until the hero chooses to step through it.
     return true;
   }
 

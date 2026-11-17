@@ -132,6 +132,7 @@ describe('the road south', () => {
     w.enterArea('ashfall_road', 'start');
     expect(w.homeTown).toBe('tel_maresh');
     expect(w.castTownPortal()).toBe(true);
+    w.cmdInteract({ kind: 'portal' });
     run(w, 3);
     expect(w.area.def.id).toBe('tel_maresh');
     expect(w.portalPos()).not.toBeNull();

@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.25.2',
+    date: '2026-11-17',
+    notes: [
+      'Casting Town Portal no longer pulls you through at once. The portal opens beside you and stays open; walk into it when you are ready to go to town.',
+      'You can now open a portal before a hard fight, so you have a way out close by if things go badly.',
+    ],
+  },
+  {
     version: '0.25.1',
     date: '2026-11-17',
     notes: [
