@@ -226,6 +226,7 @@ describe('descending', () => {
     w.descend(1);
     w.player.invuln = 999;
     expect(w.castTownPortal()).toBe(true);
+    w.cmdInteract({ kind: 'portal' });
     run(w, 2);
     expect(w.area.def.id).toBe(DEPTHS_TOWN);
     expect(w.interactLabel({ kind: 'portal' })).toBe('Town Portal (The Underforge: Depth 1)');

@@ -204,6 +204,7 @@ describe('the road north', () => {
     openNorth(w);
     w.enterArea('rimefall_pass', 'start');
     expect(w.castTownPortal()).toBe(true);
+    w.cmdInteract({ kind: 'portal' });
     run(w, 3);
     expect(w.area.def.id).toBe('emberwatch_ruins');
     const c = createCharacter('T', 'reaver');

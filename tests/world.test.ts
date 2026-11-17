@@ -65,6 +65,11 @@ describe('travel', () => {
     const tps = w.char.tpCharges;
     expect(w.castTownPortal()).toBe(true);
     run(w, 3);
+    // Casting only opens the portal: the hero stays put until they step through.
+    expect(w.area.def.id).toBe('cinder_fields');
+    expect(w.portalPos()).not.toBeNull();
+    w.cmdInteract({ kind: 'portal' });
+    run(w, 3);
     expect(w.area.def.id).toBe('town');
     expect(w.char.tpCharges).toBe(tps - 1);
     const spot = { ...w.portal! };
