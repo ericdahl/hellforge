@@ -5,6 +5,7 @@ export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
     date: '2026-11-17',
     notes: [
       'Bows in the inventory now stand upright and fit inside their slot. Bigger bows like the Long Bow used to lean over and get cut off at the edge.',
+      'Forgewright, playing with a mouse: the button to talk to someone or pick something up no longer covers the Heat gauge. It now sits just above it.',
     ],
   },
   {

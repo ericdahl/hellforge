@@ -489,6 +489,7 @@ export class Game implements PanelHost {
     if (this.hudCache.forge !== String(forge)) {
       this.hudCache.forge = String(forge);
       H.heat.classList.toggle('hidden', !forge);
+      H.root.classList.toggle('has-heat', forge);
     }
     if (forge) {
       const hv = Math.round(p.heat);
