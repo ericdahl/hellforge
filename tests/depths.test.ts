@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AREA_BY_ID, DIFFICULTY_LEVELS } from '../src/game/areas';
 import {
-  afflictionCount, AFFLICTIONS, DEPTH_BASE_LEVEL, DEPTH_BOSSES, depthCinders, depthDef, depthFortune, depthId, depthOf, depthStarts,
-  DEPTHS_TOWN, isBossDepth, isDepthId,
+  afflictionCount, AFFLICTIONS, dailyBetter, dailyDay, DEPTH_BASE_LEVEL, DEPTH_BOSSES, depthCinders, depthDef, depthFortune, depthId, depthOf,
+  depthStarts, DEPTHS_TOWN, isBossDepth, isDepthId,
 } from '../src/game/depths';
 import { floodDistances, idx } from '../src/game/map';
 import { MONSTERS } from '../src/game/monsters';
@@ -271,5 +271,143 @@ describe('descending', () => {
       expect(Number.isFinite(w.player.x + w.player.y + w.player.life)).toBe(true);
     }
     expect(seen.size).toBeGreaterThan(5);
+  });
+});
+
+describe('the Daily Descent', () => {
+  const DAY = 20261118;
+
+  /** What makes a floor that floor: its roll, its layout, and who stands where. */
+  const floor = (w: World, d: number, withMods = true) => {
+    const a = w.getArea(depthId(d));
+    return {
+      def: a.def,
+      tiles: Array.from(a.level.tiles),
+      objects: a.objects.map((o) => [o.kind, o.x, o.y, o.shrine]),
+      monsters: a.monsters.map((m) => [m.def.id, m.rarity, m.x, m.y, m.name, m.warden ?? false, withMods ? m.mods : null]),
+    };
+  };
+
+  it('is seeded by the local calendar date', () => {
+    expect(dailyDay(new Date(2026, 10, 18, 23, 59))).toBe(DAY);
+    expect(dailyDay(new Date(2027, 0, 2, 0, 1))).toBe(20270102);
+  });
+
+  it('gives two different heroes in two different worlds the same floors on the same day', () => {
+    const a = deepWorld(1234);
+    const b = makeWorld('huntress', 777);
+    b.char.level = 60;
+    b.setQuest('rekindle', 'rewarded');
+    b.char.deepest = [25];
+    // Whatever else the second hero has done today does not move the daily floors.
+    b.descend(1);
+    run(b, 3);
+    for (let i = 0; i < 50; i++) b.rng.next();
+    b.enterArea(DEPTHS_TOWN, 'start');
+    expect(a.descendDaily(DAY)).toBe(true);
+    expect(b.descendDaily(DAY)).toBe(true);
+    expect(floor(b, 1)).toEqual(floor(a, 1));
+    for (const d of [3, 5, 12]) expect(floor(b, d), `floor ${d}`).toEqual(floor(a, d));
+  });
+
+  it('gives a hero on another difficulty the same layouts, monsters, afflictions and bosses', () => {
+    const a = deepWorld(1);
+    const b = deepWorld(2);
+    b.char.difficulty = 2;
+    b.setQuest('rekindle', 'rewarded');
+    a.descendDaily(DAY);
+    b.descendDaily(DAY);
+    for (const d of [1, 4, 10, 17]) expect(floor(b, d, false), `floor ${d}`).toEqual(floor(a, d, false));
+  });
+
+  it('rolls different floors on different days', () => {
+    const a = deepWorld();
+    const b = deepWorld();
+    a.descendDaily(DAY);
+    b.descendDaily(DAY + 1);
+    const same = [1, 2, 3, 4, 5].filter((d) => JSON.stringify(floor(a, d)) === JSON.stringify(floor(b, d)));
+    expect(same).toEqual([]);
+  });
+
+  it('starts at the first floor, leaves the hero\'s own descent alone, and keeps a record of how it went', () => {
+    const w = deepWorld();
+    w.char.deepest = [10];
+    w.descendDaily(DAY);
+    expect(w.depth).toBe(1);
+    slay(w);
+    expect(w.char.deepest).toEqual([10]);
+    expect(w.descend(1)).toBe(false);
+    w.enterArea(depthId(2), 'exit', depthId(1));
+    run(w, 1);
+    expect(w.depth).toBe(2);
+    expect(w.char.daily.run!.floor).toBe(2);
+    expect(w.char.daily.run!.time).toBeGreaterThan(0);
+    w.player.invuln = 0;
+    w.damagePlayer(elemDamage('fire', 1e9), { level: 99 });
+    w.respawn();
+    expect(w.char.daily.run!.deaths).toBe(1);
+    // Back down at the deepest floor reached.
+    w.descendDaily(DAY);
+    expect(w.depth).toBe(2);
+    const res = w.endDaily()!;
+    expect(w.area.def.id).toBe(DEPTHS_TOWN);
+    expect(res).toMatchObject({ day: DAY, official: true, floor: 2, deaths: 1, level: 45, difficulty: 0 });
+    expect(w.char.daily.run).toBeUndefined();
+    expect(w.char.daily.best).toEqual(res);
+    expect(w.events).toContainEqual({ type: 'open', panel: 'daily' });
+    expect(w.descend(1)).toBe(true);
+    expect(w.char.deepest).toEqual([10]);
+  });
+
+  it('counts only the first run each day', () => {
+    const w = deepWorld();
+    w.descendDaily(DAY);
+    w.endDaily();
+    const best = w.char.daily.best!;
+    w.descendDaily(DAY);
+    expect(w.char.daily.run!.official).toBe(false);
+    w.enterArea(depthId(2), 'exit', depthId(1));
+    expect(w.endDaily()!.floor).toBe(2);
+    expect(w.char.daily.best).toBe(best);
+    w.descendDaily(DAY + 1);
+    expect(w.char.daily.run!.official).toBe(true);
+  });
+
+  it('asks whether to end the run when the hero comes up to town', () => {
+    const w = deepWorld();
+    w.descendDaily(DAY);
+    w.player.invuln = 999;
+    w.castTownPortal();
+    w.events.length = 0;
+    w.cmdInteract({ kind: 'portal' });
+    run(w, 2);
+    expect(w.area.def.id).toBe(DEPTHS_TOWN);
+    expect(w.events).toContainEqual({ type: 'open', panel: 'daily' });
+    expect(w.char.daily.run).toBeTruthy();
+    w.cmdInteract({ kind: 'portal' });
+    run(w, 3);
+    expect(w.depth).toBe(1);
+  });
+
+  it('ends with a Hardcore death', () => {
+    const w = deepWorld();
+    w.char.hardcore = true;
+    w.descendDaily(DAY);
+    w.player.invuln = 0;
+    w.events.length = 0;
+    w.damagePlayer(elemDamage('fire', 1e9), { level: 99 });
+    const death = w.events.find((e) => e.type === 'death');
+    expect(death).toMatchObject({ daily: { floor: 1, deaths: 1, official: true } });
+    expect(w.char.daily.run).toBeUndefined();
+    expect(w.char.daily.best?.floor).toBe(1);
+  });
+
+  it('ranks results deeper first, then faster, then with fewer deaths', () => {
+    const r = { day: DAY, official: true, floor: 5, time: 100, deaths: 2, level: 50, difficulty: 2 };
+    expect(dailyBetter(r)).toBe(true);
+    expect(dailyBetter({ ...r, floor: 6, time: 900 }, r)).toBe(true);
+    expect(dailyBetter({ ...r, time: 90 }, r)).toBe(true);
+    expect(dailyBetter({ ...r, deaths: 1 }, r)).toBe(true);
+    expect(dailyBetter(r, r)).toBe(false);
   });
 });

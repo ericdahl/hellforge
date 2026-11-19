@@ -1,5 +1,5 @@
 import { AREA_BY_ID } from '../game/areas';
-import { POTION_POOLS, potionCount, potionSummary, potionTiers, type Character } from '../game/character';
+import { POTION_POOLS, potionCount, potionSummary, potionTiers, type Character, type DailyResult } from '../game/character';
 import { MOD_LABEL } from '../game/monsters';
 import { SKILL_BY_ID } from '../game/skills';
 import { STORIES, type StoryBeat } from '../game/story';
@@ -11,6 +11,7 @@ import { h, isTouch } from './dom';
 import { forgeKey, resetForgeUi } from './forge';
 import { itemActions, panelItemContext, renderPanel, resetRespecUi, resetStashUi, type PanelHost, type PanelKind, type Selection } from './panels';
 import { resetSkillUi } from './skilltree';
+import { dailyCard } from './daily';
 import { loadSettings, loadShared, saveCharacter, saveSettings, saveShared, type Settings } from './save';
 
 const TOUCH_JOY_ZONE = 0.42;
@@ -186,9 +187,10 @@ export class Game implements PanelHost {
           break;
         case 'open':
           this.open(e.panel);
+          if (e.panel === 'daily') this.save();
           break;
         case 'death':
-          this.showDeath();
+          this.showDeath(e.daily);
           break;
         case 'victory':
           this.showVictory();
@@ -668,7 +670,7 @@ export class Game implements PanelHost {
     this.onExit();
   }
 
-  private showDeath() {
+  private showDeath(daily?: DailyResult) {
     const c = this.world.char;
     this.save();
     this.overlayEl.innerHTML = '';
@@ -690,6 +692,7 @@ export class Game implements PanelHost {
             }
           },
         }, hc ? 'Return to Menu' : 'Respawn in Town'),
+        daily ? dailyCard(c, daily) : null,
       ),
     );
   }

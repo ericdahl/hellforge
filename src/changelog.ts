@@ -1,6 +1,18 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.26.0',
+    date: '2026-11-18',
+    notes: [
+      'The Daily Descent: once the Underforge is open, every waypoint offers a run through today\'s floors. Everyone playing on the same day gets the same floors, monsters, afflictions and bosses, and it always starts at the first floor.',
+      'Play it with your own hero. It does not change where your own Underforge descents can start from.',
+      'The run keeps the deepest floor you reach, the time since it began and how many times you died. The clock keeps running in town.',
+      'Coming up to town through a portal or the stairs asks whether to end the run or keep going. You can also end it from the waypoint or the game menu. On Hardcore, dying ends it. On softcore, dying counts as a death and you can carry on from the waypoint at the deepest floor you reached.',
+      'Only your first run each day counts. You can play it again, but later runs are marked unofficial.',
+      'When a run ends you get a result card to copy and share, like "Hellforge Daily · Nov 18 · Huntress lvl 52 · Hell · Floor 14 · 22:41 · 3 deaths". Your best result is shown at the waypoint.',
+    ],
+  },
+  {
     version: '0.25.2',
     date: '2026-11-17',
     notes: [

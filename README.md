@@ -136,7 +136,7 @@ Forge mastery grows with use, improves costs and odds, and teaches socket punchi
 
 | Feature | |
 |---|---|
-| **The Underforge** | Finishing Act 3 opens an endless dungeon at every waypoint (per difficulty). Floors are rolled from the run's seed with layouts and monsters from all three acts, one monster level deeper each. A warden seals the stairs on every floor, every fifth floor is a returning boss, and from the third floor down each floor carries one to three afflictions that every monster shares. Magic find, gold find and elite density rise with depth, wardens pay out Cinders, and clearing a boss floor lets the next descent start below it |
+| **The Underforge** | Finishing Act 3 opens an endless dungeon at every waypoint (per difficulty). Floors are rolled from the run's seed with layouts and monsters from all three acts, one monster level deeper each. A warden seals the stairs on every floor, every fifth floor is a returning boss, and from the third floor down each floor carries one to three afflictions that every monster shares. Magic find, gold find and elite density rise with depth, wardens pay out Cinders, and clearing a boss floor lets the next descent start below it. The **Daily Descent** beside it is a run from the first floor through floors rolled from the date, the same for every player that day; it tracks the deepest floor, the time and the deaths, only the first run each day counts, and it ends with a result card to copy |
 | **The Brass Wyrm** | An optional encounter in the High Roost, a cave off Gloomwood that no quest points to, with a dragon about sixteen levels above the area. Carry his letter to the captain in Tel Maresh for a reward, challenge him (telegraphed fire breath, a wing buffet that throws the hero, shadowless copies, a flight phase), or rob the hoard while he sleeps for an angrier fight. He yields at a quarter of his life and never dies, then offers one of three items. Once per difficulty. To talk he takes a man's shape, and the same man stands in Emberwatch Camp and Tel Maresh as a hint that the cave exists |
 | **Hirelings** | A captain in every town hires out a Shieldbearer (melee, tough), a Bowman (ranged) or an Ember-Keeper (fire, and warm to stand beside in Act 3). They fight at the hero's level, follow between areas, mend out of combat, and are brought back at any captain for a fee if they fall |
 | **Shared stash** | A second stash tab, with items and gold, that every hero in this browser shares. Hardcore heroes have a separate one |
@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.26.0 | | The Daily Descent: a daily seeded Underforge run, the same floors for everyone that day, with a result card to copy; save version 4 |
 | 0.25.2 | | Town Portal opens a portal and leaves you to step through it, instead of taking you to town at once |
 | 0.25.1 | | Bow icons drawn upright and inside their inventory slot; desktop interact button clears the Heat gauge |
 | 0.25.0 | | A second set per class, each raising one branch of the skill tree by 3 (new `tree_<branch>` stat) |
@@ -217,7 +218,7 @@ npm run balance    # the bot plays every class through all three acts on three s
 |---|---|
 | `src/game/` | Pure simulation with no DOM: map generation, pathfinding, items, skills, monsters, combat, `World` |
 | `src/game/forge.ts` | The Forge: costs, odds and every job as pure functions (`forgePreview`, `forgeApply`). `addForgeModifier(source)` lets a class, set or event change costs, heat odds, salvage yield and mastery gain; the Forgewright's bonus is registered that way |
-| `src/game/depths.ts` | The Underforge: how a floor is rolled (`depthDef`), afflictions, boss rotation and rewards. Floors have ids like `depth:7` and are not in `AREAS`; use `world.defOf(id)` |
+| `src/game/depths.ts` | The Underforge: how a floor is rolled (`depthDef`), afflictions, boss rotation and rewards. Floors have ids like `depth:7` and are not in `AREAS`; use `world.defOf(id)`. A Daily Descent floor is rolled from `dailyFloorSeed(day, depth)` alone; the run is `World.descendDaily`/`endDaily` and `char.daily`, and its waypoint entry and result card are in `src/ui/daily.ts` |
 | `src/game/wyrm.ts` | The Brass Wyrm: his lines, constants and states. The encounter itself is the `wyrm*` methods on `World`; what he remembers is in the quest log (`wyrm_errand`, `wyrm_fight`, `wyrm_theft`). The cave's entrance is added to the finished Gloomwood map without rolling dice, so the wood is unchanged |
 | `src/game/hireling.ts` | Hirelings: the three kinds, their names and what they cost. They live in `world.minions` with `ally: 'hireling'` and are kept on the hero as `char.hireling` |
 | `src/game/skilltree.ts` | Where each class's skills sit in the tree (`SKILL_TREES`: three branches, optional second column). Rows come from `reqLevel` and lines from `prereq`, so a new skill only needs adding to its branch. `tests/skilltree.test.ts` fails if a line would cross another skill |
