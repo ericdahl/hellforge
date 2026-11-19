@@ -2,14 +2,17 @@ import { AREA_BY_ID, areaAct, DIFFICULTY_LEVELS, QUEST_BY_ID, QUESTS, TOWN_OF_AC
 import {
   addPotion, addToGrid, addToInventory, addXp, choosePotion, CLASSES, computeStats, equipFromInventory, INV_COLS, INV_ROWS,
   removeFromGrid, respec, skillLevel, STASH_COLS, STASH_ROWS, takePotion, unequip, xpForLevel, xpMultiplier,
-  newSharedStash, type Buffs, type Character, type PotionPool, type SharedStash, type Stats,
+  newSharedStash, type Buffs, type Character, type DailyResult, type PotionPool, type SharedStash, type Stats,
 } from './character';
 import { applyResists, hitChance, reducePhysical, roll, ZERO_DAMAGE, type Damage } from './combat';
 import {
   baseOf, buyPrice, displayName, gamble, gamblePrice, generateItem, itemColor, makeItem, nextUid, potionFor, rollDrops,
   sellPrice, type DropTier, type Item, type ItemKind, type Slot,
 } from './items';
-import { afflictionLabel, DEPTH_BOSSES, DEPTH_STRIDE, depthCinders, depthDef, depthFortune, depthId, depthOf, depthStarts, isDepthId } from './depths';
+import {
+  afflictionLabel, dailyBetter, dailyFloorSeed, DEPTH_BOSSES, DEPTH_STRIDE, depthCinders, depthDef, depthFortune, depthId, depthOf, depthStarts, DEPTHS_TOWN,
+  isDepthId,
+} from './depths';
 import { forgeApply, type ForgeAction, type ForgeResult } from './forge';
 import { hireCost, hirelingName, HIRELINGS, reviveCost, type HireKind } from './hireling';
 import { ERRAND_TOWN, STRANGER_NAME, WYRM_AREA, WYRM_FROM, YIELD_ANGRY, YIELD_AT, type StrangerTalk, type WyrmState, type WyrmTalk } from './wyrm';
@@ -31,14 +34,14 @@ export type SoundId =
 /** Seconds a ground item takes to bounce when it lands or refuses to be picked up. */
 export const LOOT_BOUNCE = 0.4;
 
-export type Panel = 'healer' | 'smith' | 'sage' | 'fence' | 'stash' | 'waypoint' | 'caravan' | 'forge' | 'captain' | 'wyrm' | 'stranger';
+export type Panel = 'healer' | 'smith' | 'sage' | 'fence' | 'stash' | 'waypoint' | 'caravan' | 'forge' | 'captain' | 'wyrm' | 'stranger' | 'daily';
 
 export type GameEvent =
   | { type: 'sound'; id: SoundId }
   | { type: 'msg'; text: string; color?: string }
   | { type: 'levelup'; level: number }
   | { type: 'open'; panel: Panel }
-  | { type: 'death' }
+  | { type: 'death'; daily?: DailyResult }
   | { type: 'area'; id: string }
   | { type: 'quest'; id: string }
   | { type: 'victory' }
@@ -504,6 +507,10 @@ export class World {
   private forgeRng: Rng;
   /** Descents into the Underforge this session. Each one rolls its floors afresh. */
   private depthRun = 0;
+  /** The day whose Daily Descent floors are loaded, or 0 when the Underforge floors are the hero's own. */
+  private dailyFloors = 0;
+  /** How the last Daily Descent to end this session went. */
+  lastDaily: DailyResult | null = null;
 
   /** The stash this hero shares with the others on the device. Whoever owns the world keeps it stored. */
   shared: SharedStash;
@@ -676,7 +683,10 @@ export class World {
     const existing = this.areas.get(id);
     if (existing) return existing;
     const deep = isDepthId(id);
-    const rng = new Rng(deep ? hashSeed(this.seed, id, this.char.difficulty, this.depthRun) : hashSeed(this.seed, id, this.char.difficulty));
+    const rng = new Rng(
+      deep && this.dailyFloors ? dailyFloorSeed(this.dailyFloors, depthOf(id))
+      : deep ? hashSeed(this.seed, id, this.char.difficulty, this.depthRun) : hashSeed(this.seed, id, this.char.difficulty),
+    );
     const def = deep ? depthDef(depthOf(id), rng) : AREA_BY_ID[id];
     const level = generateLevel(def.spec, rng);
     if (id === WYRM_FROM) this.addRoostPath(level);
@@ -1065,14 +1075,54 @@ export class World {
 
   /** Starts a fresh descent at one of the open starting floors. Whatever was left of the last one is gone. */
   descend(depth = 1): boolean {
-    if (this.player.dead || !this.depthStartList().includes(depth)) return false;
-    for (const id of [...this.areas.keys()]) if (isDepthId(id)) this.areas.delete(id);
-    if (this.portal && isDepthId(this.portal.area)) this.portal = null;
-    for (const [k, am] of this.ambushes) if (am.area.def.depth) this.ambushes.delete(k);
+    if (this.player.dead || this.char.daily.run || !this.depthStartList().includes(depth)) return false;
+    this.leaveDepths();
+    this.dailyFloors = 0;
     this.depthRun++;
     this.sound('portal');
     this.enterArea(depthId(depth), 'start');
     return true;
+  }
+
+  /** Lets go of every Underforge floor, and any portal or ambush down there. */
+  private leaveDepths() {
+    for (const id of [...this.areas.keys()]) if (isDepthId(id)) this.areas.delete(id);
+    if (this.portal && isDepthId(this.portal.area)) this.portal = null;
+    for (const [k, am] of this.ambushes) if (am.area.def.depth) this.ambushes.delete(k);
+  }
+
+  /**
+   * Starts today's Daily Descent at the first floor, or goes back into the one in progress at the deepest floor it reached.
+   * `today` is the local date as YYYYMMDD. The first run each day is the one that counts.
+   */
+  descendDaily(today: number): boolean {
+    if (this.player.dead || !this.depthsOpen) return false;
+    const d = this.char.daily;
+    if (!d.run) {
+      d.run = { day: today, official: d.lastDay !== today, floor: 1, time: 0, deaths: 0 };
+      d.lastDay = today;
+    }
+    this.leaveDepths();
+    this.dailyFloors = d.run.day;
+    this.sound('portal');
+    this.enterArea(depthId(d.run.floor), 'start');
+    return true;
+  }
+
+  /** Ends the Daily Descent in progress, keeps the best that counted, and brings the hero up to town. */
+  endDaily(show = true): DailyResult | null {
+    const d = this.char.daily;
+    if (!d.run) return null;
+    const res: DailyResult = { ...d.run, level: this.char.level, difficulty: this.char.difficulty };
+    d.run = undefined;
+    if (res.official && dailyBetter(res, d.best)) d.best = res;
+    this.lastDaily = res;
+    if (show) {
+      if (this.depth) this.enterArea(DEPTHS_TOWN, 'start');
+      this.leaveDepths();
+      this.emit({ type: 'open', panel: 'daily' });
+    }
+    return res;
   }
 
   /** Moves the player to an area. `via` decides where they appear. */
@@ -1083,6 +1133,8 @@ export class World {
     this.area = a;
     // Floors left behind on the way down are let go, apart from one a town portal still leads back to.
     if (a.def.depth) for (const [k, o] of this.areas) if (o.def.depth && o.def.depth < a.def.depth && this.portal?.area !== k) this.areas.delete(k);
+    const run = this.char.daily.run;
+    if (run && this.dailyFloors && a.def.depth) run.floor = Math.max(run.floor, a.def.depth);
     const l = a.level;
     let pos: Point = l.start;
     if (via === 'exit' && fromId) {
@@ -1124,6 +1176,8 @@ export class World {
     const wyrm = a.def.id === WYRM_AREA ? a.monsters.find((m) => m.wyrm === 'fight' && !m.illusion) : undefined;
     if (wyrm) this.setWyrm(wyrm, 'fight');
     this.emit({ type: 'area', id });
+    // Back in town from a Daily Descent on foot or by portal: end it here, or go back down.
+    if (run && a.def.town && prev?.def.depth && via !== 'start') this.emit({ type: 'open', panel: 'daily' });
     if (a.def.depth && a.def.afflictions?.length && this.wardenAlive()) {
       this.emit({ type: 'announce', text: a.def.afflictions.map((m) => afflictionLabel(m).split(' (')[0]).join(' · '), sub: `Everything on this floor is ${a.def.afflictions.map((m) => MOD_LABEL[m]).join(', ')}`, color: '#d080ff' });
     }
@@ -1892,6 +1946,7 @@ export class World {
     dt = Math.min(dt, 0.05);
     this.time += dt;
     this.char.playTime += dt;
+    if (this.char.daily.run) this.char.daily.run.time += dt;
     const a = this.area;
     for (const f of a.fx) f.t += dt;
     a.fx = a.fx.filter((f) => f.t < f.dur);
@@ -2913,7 +2968,8 @@ export class World {
     c.forge.cinders += cinders;
     if (m.rarity !== 'boss') this.spawnDrops(m.x, m.y, m.level, 'unique');
     const best = (c.deepest ??= []);
-    const record = depth > (best[c.difficulty] ?? 0);
+    // A daily floor is everyone's that day, not a step on the hero's own way down.
+    const record = !this.dailyFloors && depth > (best[c.difficulty] ?? 0);
     if (record) best[c.difficulty] = depth;
     const start = record && depth % DEPTH_STRIDE === 0;
     this.emit({
@@ -3024,8 +3080,10 @@ export class World {
     this.minions = [];
     this.endSpree(true);
     this.sound('death');
-    this.emit({ type: 'death' });
+    const run = this.char.daily.run;
+    if (run) run.deaths++;
     if (this.char.hardcore) this.char.dead = true;
+    this.emit({ type: 'death', daily: (this.char.hardcore && this.endDaily(false)) || undefined });
   }
 
   /** Spends a respec (see character.ts). Servants and standing spells made with the old skills go with them. */
@@ -3070,6 +3128,7 @@ export class World {
     p.mana = this.stats.maxMana;
     this.enterArea(this.homeTown, 'start');
     if (lost) this.msg(`You lost ${lost} gold`, '#ff8a6a');
+    if (c.daily.run) this.msg('The Daily Descent goes on: take the waypoint back down, or end it there', '#ffb060');
   }
 
   // ---------------------------------------------------------------- objects

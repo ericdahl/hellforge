@@ -70,7 +70,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
 /** Share of an off-hand weapon's damage a Hiveborn adds to each blow, before Many Hands. */
 export const OFFHAND_SHARE = 50;
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const INV_COLS = 10;
 export const INV_ROWS = 4;
 export const STASH_COLS = 10;
@@ -152,6 +152,33 @@ export interface Character {
   respecsUsed?: number;
   /** The companion hired at a town's captain, if any. */
   hireling?: HirelingState;
+  daily: DailyState;
+}
+
+/** A Daily Descent: the day it was rolled for, and how it has gone so far. */
+export interface DailyRun {
+  /** The local date as YYYYMMDD, which is also the run's seed. */
+  day: number;
+  /** Only the first run each day counts towards the best. */
+  official: boolean;
+  /** The deepest floor reached. */
+  floor: number;
+  /** Seconds of play since the run began. */
+  time: number;
+  deaths: number;
+}
+
+export interface DailyResult extends DailyRun {
+  level: number;
+  difficulty: number;
+}
+
+export interface DailyState {
+  /** The run in progress. Kept on the hero, so leaving the game does not give another try. */
+  run?: DailyRun;
+  /** The last day a run that counts was started. */
+  lastDay: number;
+  best?: DailyResult;
 }
 
 export function createCharacter(name: string, classId: ClassId, hardcore = false): Character {
@@ -184,6 +211,7 @@ export function createCharacter(name: string, classId: ClassId, hardcore = false
     created: Date.now(),
     playTime: 0,
     forge: newForgeState(),
+    daily: { lastDay: 0 },
   };
   for (const b of cls.start) {
     const it = makeItem(b);
@@ -634,6 +662,8 @@ export function migrateCharacter(c: Character & { belt?: string[][] }): boolean 
   }
   // v3 added the Forge: materials and mastery start empty.
   if (c.version < 3) c.forge = { ...newForgeState(), ...c.forge };
+  // v4 added the Daily Descent.
+  if (c.version < 4) c.daily ??= { lastDay: 0 };
   c.version = SAVE_VERSION;
   return true;
 }

@@ -15,8 +15,9 @@ import { hireCost, HIRE_KINDS, HIRELINGS, reviveCost } from '../game/hireling';
 import { itemTooltip } from './tooltip';
 import { STRANGER_LINES, STRANGER_NAME, WYRM_LINES, WYRM_NAME, WYRM_OFFERS } from '../game/wyrm';
 import { skillsPanel } from './skilltree';
+import { dailyPanel, dailyWaypoint } from './daily';
 
-export type PanelKind = 'inventory' | 'character' | 'skills' | 'healer' | 'smith' | 'sage' | 'fence' | 'stash' | 'waypoint' | 'caravan' | 'forge' | 'captain' | 'wyrm' | 'stranger' | 'menu' | 'help';
+export type PanelKind = 'inventory' | 'character' | 'skills' | 'healer' | 'smith' | 'sage' | 'fence' | 'stash' | 'waypoint' | 'caravan' | 'forge' | 'captain' | 'wyrm' | 'stranger' | 'daily' | 'menu' | 'help';
 
 export interface Selection {
   uid: number;
@@ -269,6 +270,8 @@ export function renderPanel(host: PanelHost, kind: PanelKind): HTMLElement {
       return sagePanel(host);
     case 'fence':
       return fencePanel(host);
+    case 'daily':
+      return dailyPanel(host);
     case 'menu':
       return menuPanel(host);
     case 'help':
@@ -494,11 +497,12 @@ function waypointPanel(host: PanelHost) {
     list.prepend(
       h('div', { class: 'wp-act' }, 'The Underforge'),
       h('div', { class: 'dim small depth-say' }, `An endless descent under the Heart. A warden holds the stairs on every floor, and every fifth floor is a boss. ${best ? `Deepest floor cleared: ${best}.` : 'Clear a boss floor to start the next descent from below it.'}`),
-      // Deepest start first: that is where a returning hero wants to go.
-      ...starts.slice().reverse().slice(0, 4).map((d, i) =>
+      // Deepest start first: that is where a returning hero wants to go. A Daily Descent has to end before another descent begins.
+      ...(w.char.daily.run ? [] : starts).slice().reverse().slice(0, 4).map((d, i) =>
         h('button', { class: `btn wp depth ${i === 0 ? 'primary' : ''}`, 'data-depth': d, onclick: () => { host.close(); w.descend(d); } },
           d === 1 ? 'Descend from the top' : `Descend from Depth ${d}`,
           h('span', { class: 'dim small' }, ` · lvl ${DEPTH_BASE_LEVEL + d + DIFFICULTY_LEVELS[w.char.difficulty]}`))),
+      ...dailyWaypoint(host),
     );
   }
   return h('div', { class: 'panel wpp' }, header(host, 'Waypoints', DIFFICULTIES[w.char.difficulty]), h('div', { class: 'p-body' }, list));
@@ -677,6 +681,7 @@ function menuPanel(host: PanelHost) {
       tog('labels', 'Item labels'),
       tog('numbers', 'Damage numbers'),
       h('button', { class: 'btn', onclick: () => host.open('help') }, 'How to Play'),
+      host.world.char.daily.run ? h('button', { class: 'btn daily-end', onclick: () => { host.world.endDaily(); host.open('daily'); } }, 'End the Daily Descent') : null,
       h('button', { class: 'btn danger', onclick: () => host.quitToMenu() }, 'Save and Exit')),
   );
 }
@@ -708,7 +713,7 @@ function helpPanel(host: PanelHost) {
         'Dodging makes you untouchable for a moment and cuts short a swing or a cast. Kill quickly to build a <span class="gold2">spree</span>: each rank makes you faster, kills worth more experience, and gives you a second wind.',
         'Red and blue soul orbs restore life and mana when you walk over them. A <span class="gold2">Tithe Imp</span> drops gold with every blow and a hoard if you kill it before it escapes. A purple Cursed Shrine calls an ambush and pays out if you survive it. Clearing an area completely earns a reward.',
         'At <span class="gold2">the Forge</span> beside the blacksmith, salvage loot you do not need into Cinders and Essences, then spend them on the gear you keep: Heat it up to +10, Temper or Quench its affixes, Smelt three items into a better one. Heating past +5 can fail and crack the item back a level. Forge mastery grows with every job and teaches new ones.',
-        'Finish the Ember Road and <span class="gold2">the Underforge</span> opens at every waypoint: an endless descent, one monster level harder a floor. A warden holds the stairs on each floor, every fifth floor is a boss, and deeper floors carry afflictions that everything on them shares. The deeper you go, the better the loot and the more Cinders each warden leaves for the Forge.',
+        'Finish the Ember Road and <span class="gold2">the Underforge</span> opens at every waypoint: an endless descent, one monster level harder a floor. A warden holds the stairs on each floor, every fifth floor is a boss, and deeper floors carry afflictions that everything on them shares. The deeper you go, the better the loot and the more Cinders each warden leaves for the Forge. The <span class="gold2">Daily Descent</span> beside it gives everyone the same floors each day, from the first floor down; only your first run each day counts.',
         'The <span class="gold2">captain</span> in every town hires out one companion at a time: a Shieldbearer, a Bowman or an Ember-Keeper. They fight at your level, follow you between areas, and can be brought back at any captain for a fee if they fall.',
         'The <span class="gold2">Hiveborn</span> has four arms. A one-handed weapon can go in either upper hand (Equip Main Hand or Equip Off Hand), and a two-hander or a bow can be held with a shield or a second weapon beside it. The lower arms are claws: they add their damage to every blow struck up close, and with a bow in hand a plain attack on something within reach is a claw strike.',
         'Not everything is on the road. High in <span class="gold2">Gloomwood</span> there is a cave that no quest sends you to, and something very old asleep in it. It is far stronger than anything else in the wood. It would rather talk than fight.',

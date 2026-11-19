@@ -1085,3 +1085,24 @@ button {
 .wyrm-picks { display: flex; gap: 10px; flex-wrap: wrap; }
 .wyrm-pick { flex: 1 1 190px; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(160, 130, 80, 0.35); border-radius: 4px; padding: 8px; }
 .wyrm-pick .tt { flex: 1; }
+/* ------------------------------------------------------------------ the Daily Descent */
+.panel.daily { max-width: 440px; }
+.daily .p-body { display: flex; flex-direction: column; gap: 8px; }
+.daily-row { display: flex; gap: 6px; }
+.daily-row .btn.wp { flex: 1; }
+.daily-card { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; width: 100%; }
+.daily-floor { font-size: 28px; color: var(--gold-hi); letter-spacing: 0.04em; }
+.daily-sub { color: #c8b890; font-size: 14px; }
+.daily-text {
+  width: 100%;
+  font: 13px/1.35 ui-monospace, monospace;
+  background: #0e0a06;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 6px 8px;
+  resize: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.daily-copy { min-width: 120px; }
+.daily-status { min-height: 18px; font-size: 13px; color: #9ad08a; }

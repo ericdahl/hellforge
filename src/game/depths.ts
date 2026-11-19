@@ -1,7 +1,8 @@
 import { AREAS, type AreaDef } from './areas';
 import type { ThemeId } from './map';
 import { MOD_LABEL, type UniqueMod } from './monsters';
-import type { Rng } from './rng';
+import type { DailyResult } from './character';
+import { hashSeed, type Rng } from './rng';
 
 /**
  * The Underforge: an endless descent that opens under Emberwatch once the ember is home.
@@ -84,6 +85,24 @@ export function depthStarts(best: number): number[] {
   const out = [1];
   for (let d = DEPTH_STRIDE; d <= best; d += DEPTH_STRIDE) out.push(d + 1);
   return out;
+}
+
+/** The Daily Descent's seed: the local calendar date as YYYYMMDD, so everyone playing that day gets the same floors. */
+export function dailyDay(d: Date): number {
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+/** Each daily floor is rolled from the day and its depth alone, so nothing else the hero does can change it. */
+export function dailyFloorSeed(day: number, depth: number): number {
+  return hashSeed('daily', day, depth);
+}
+
+/** Whether a daily result beats another: deeper first, then faster, then fewer deaths. */
+export function dailyBetter(a: DailyResult, b?: DailyResult): boolean {
+  if (!b) return true;
+  if (a.floor !== b.floor) return a.floor > b.floor;
+  if (a.time !== b.time) return a.time < b.time;
+  return a.deaths < b.deaths;
 }
 
 /** Rolls a floor. The same depth and rng always give the same floor. */
