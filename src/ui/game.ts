@@ -33,6 +33,12 @@ export class Game implements PanelHost {
   /** Smoothed time between animation frames, in milliseconds: the display's refresh interval. */
   private rafMs = 1000 / 60;
   private skipFrame = false;
+  /** Smoothed time spent stepping the world and drawing a frame, in milliseconds. */
+  private workMs = 0;
+  private slowT = 0;
+  private fastT = 0;
+  /** Seconds to wait after a resolution change before judging again. */
+  private settleT = 0;
   private acc = 0;
   private saveT = 0;
   private running = true;
@@ -119,17 +125,21 @@ export class Game implements PanelHost {
     const frozen = this.freeze > 0;
     if (frozen) this.freeze -= dt;
     else this.freezeGap -= dt;
+    const t0 = performance.now();
     if (!this.paused && !frozen) {
       this.updateHeld();
       this.acc += dt;
-      while (this.acc >= 1 / 60) {
+      // Catching up more than a few steps after a long frame makes this frame long too; drop the rest.
+      for (let n = 0; this.acc >= 1 / 60 && n < 3; n++) {
         w.step(1 / 60);
         this.acc -= 1 / 60;
       }
+      if (this.acc >= 1 / 60) this.acc = 0;
     } else this.acc = 0;
     this.drainEvents();
     this.updateMusic();
     this.renderer.render(w, this.paused ? 0 : frozen ? dt * 0.1 : dt);
+    this.adaptResolution(performance.now() - t0, dt);
     this.updateHud();
     this.saveT += dt;
     if (this.saveT > 15) {
@@ -138,6 +148,31 @@ export class Game implements PanelHost {
     }
     this.raf = requestAnimationFrame(this.frame);
   };
+
+  /** Draws at a lower resolution while frames run slow (a crowd on a phone), and sharper again once they're quick. */
+  private adaptResolution(ms: number, dt: number) {
+    if (this.paused) {
+      this.slowT = this.fastT = 0;
+      return;
+    }
+    this.workMs += (ms - this.workMs) * 0.1;
+    if (this.settleT > 0) {
+      this.settleT -= dt;
+      return;
+    }
+    // A 60 Hz frame is 16.7 ms. Past 14 ms of our own work the browser has no room left and frames drop.
+    // Well under half of it there is room to draw sharper. The gap between the two keeps it from flipping
+    // back and forth, and stepping up waits longer than stepping down so a passing lull doesn't bring the lag back.
+    this.slowT = this.workMs > 14 ? this.slowT + dt : 0;
+    this.fastT = this.workMs < 7 ? this.fastT + dt : 0;
+    const dir = this.slowT > 1.5 ? -1 : this.fastT > 5 ? 1 : 0;
+    if (dir && this.renderer.stepResolution(dir)) {
+      this.resize();
+      this.slowT = this.fastT = 0;
+      // The smoothed time still remembers the old resolution; let it catch up.
+      this.settleT = 2;
+    }
+  }
 
   /** Feed the score how hard the fight is and how close to death the player is. */
   private updateMusic() {

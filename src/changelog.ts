@@ -1,6 +1,13 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.26.1',
+    date: '2026-11-19',
+    notes: [
+      'Big crowds of monsters stutter less on phones. When the game starts to fall behind, it draws the world at a slightly lower resolution until things calm down, then goes back to full sharpness. The buttons, orbs and text stay sharp throughout.',
+    ],
+  },
+  {
     version: '0.26.0',
     date: '2026-11-18',
     notes: [
