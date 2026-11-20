@@ -33,6 +33,8 @@ export interface LabelRect {
 
 const OUTDOOR = new Set(['fields', 'forest', 'town', 'oasis', 'desert', 'glass', 'mesa', 'snow', 'snowtown']);
 const BLOCK_PROPS = new Set(['pillar', 'tent', 'campfire', 'well', 'hearth', 'ruin', 'forge']);
+/** Pixel ratios the game can step down through when frames run slow. */
+const DPR_STEPS = [2, 1.5, 1.25, 1];
 
 export class Renderer {
   readonly cam = new Camera();
@@ -40,6 +42,8 @@ export class Renderer {
   private dark: HTMLCanvasElement;
   private dctx: CanvasRenderingContext2D;
   private dpr = 1;
+  /** Highest pixel ratio to draw at; lowered by `stepResolution` when drawing can't keep up. */
+  private maxDpr = 2;
   labels: LabelRect[] = [];
   showLabels = true;
   automap: 'off' | 'mini' | 'full' = 'mini';
@@ -69,8 +73,28 @@ export class Renderer {
     this.flashFx = { color, a: Math.max(a, this.flashFx.a) };
   }
 
+  /** The pixel ratio the canvas is drawn at. */
+  get pixelRatio() {
+    return this.dpr;
+  }
+
+  /**
+   * Lowers (-1) or raises (+1) the pixel ratio a notch, never above the device's own ratio (capped at 2) or
+   * below 1. Returns whether it changed; the caller then calls `resize` to apply it.
+   */
+  stepResolution(dir: -1 | 1): boolean {
+    const device = Math.min(2, window.devicePixelRatio || 1);
+    const ratios = [device, ...DPR_STEPS.filter((r) => r < device && r >= 1)];
+    let i = ratios.findIndex((r) => r <= this.dpr);
+    if (i < 0) i = ratios.length - 1;
+    const next = ratios[Math.max(0, Math.min(ratios.length - 1, i - dir))];
+    if (next === this.dpr) return false;
+    this.maxDpr = next;
+    return true;
+  }
+
   resize(w: number, h: number) {
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = Math.min(this.maxDpr, window.devicePixelRatio || 1);
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
     this.canvas.style.width = `${w}px`;

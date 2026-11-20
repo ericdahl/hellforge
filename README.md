@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |
 | 0.26.0 | | The Daily Descent: a daily seeded Underforge run, the same floors for everyone that day, with a result card to copy; save version 4 |
 | 0.25.2 | | Town Portal opens a portal and leaves you to step through it, instead of taking you to town at once |
 | 0.25.1 | | Bow icons drawn upright and inside their inventory slot; desktop interact button clears the Heat gauge |
