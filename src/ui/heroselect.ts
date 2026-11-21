@@ -1,6 +1,6 @@
 import { CLASSES } from '../game/character';
 import { makeItem, type ClassId, type Item } from '../game/items';
-import { drawHumanoid, drawTinted, type HumanoidLook, type Pose } from '../render/figures';
+import { drawHumanoid, drawWithTints, type HumanoidLook, type Pose } from '../render/figures';
 import { heroLook, type Gear } from '../render/looks';
 
 /**
@@ -193,12 +193,13 @@ export function heroScene(initial: ClassId, onPick: (id: ClassId) => void): Hero
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(s, s);
-      drawHumanoid(ctx, look, pose, time);
       // Firelight on the side that faces it; the ones not picked stand back in the dark.
       const near = 1 - Math.min(1, Math.abs(x - f.x) / (W * 0.5));
-      drawTinted(ctx, (c) => drawHumanoid(c, look, pose, time), '#ff7a28', (0.1 + 0.16 * near) * flick, 'lighter', 80);
       const dim = 0.5 * (1 - up) * (hover === h.id ? 0.45 : 1);
-      if (dim > 0.01) drawTinted(ctx, (c) => drawHumanoid(c, look, pose, time), '#06040a', dim, 'source-over', 80);
+      drawWithTints(ctx, (c) => drawHumanoid(c, look, pose, time), [
+        { color: '#ff7a28', a: (0.1 + 0.16 * near) * flick },
+        { color: '#06040a', a: dim > 0.01 ? dim : 0, op: 'source-over' },
+      ]);
       ctx.restore();
     }
     if (!fireDrawn) drawFire(t, flick);

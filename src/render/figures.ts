@@ -268,14 +268,21 @@ export function drawBaked(ctx: CanvasRenderingContext2D, b: Baked) {
 
 // ------------------------------------------------------------------ tinting
 
+/** A flat colour laid over a figure where it is opaque, composited with `op` (default 'lighter') at `a`. */
+export interface Tint {
+  color: string;
+  a: number;
+  op?: GlobalCompositeOperation;
+}
+
 let scratch: HTMLCanvasElement | null = null;
 
 /**
- * Draws a figure flattened to one colour (hit flashes, chill, poison, charring), using the
- * caller's current transform. The figure is rendered to a scratch buffer, filled with `tint`
- * where it is opaque, then composited onto `ctx` with `op` at `a`.
+ * Renders `draw` into a scratch buffer at the caller's transform, fills it with `tint` where it is opaque,
+ * and composites that onto `ctx`. `reach` bounds the figure in its own units: up to `reach` either side,
+ * 1.4 x `reach` above its origin and 0.6 x `reach` below.
  */
-export function drawTinted(ctx: CanvasRenderingContext2D, draw: (c: CanvasRenderingContext2D) => void, tint: string, a: number, op: GlobalCompositeOperation = 'lighter', reach = 130) {
+function stampTinted(ctx: CanvasRenderingContext2D, draw: (c: CanvasRenderingContext2D) => void, tint: string, a: number, op: GlobalCompositeOperation, reach: number) {
   const m = ctx.getTransform();
   const s = Math.max(Math.hypot(m.a, m.b), Math.hypot(m.c, m.d));
   const size = Math.min(2048, Math.ceil(reach * 2 * s));
@@ -296,16 +303,124 @@ export function drawTinted(ctx: CanvasRenderingContext2D, draw: (c: CanvasRender
   draw(sc);
   sc.setTransform(1, 0, 0, 1, 0, 0);
   sc.globalCompositeOperation = 'source-atop';
-  sc.globalAlpha = 1;
   sc.fillStyle = tint;
   sc.fillRect(0, 0, size, size);
   sc.globalCompositeOperation = 'source-over';
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalCompositeOperation = op;
-  ctx.globalAlpha *= a;
+  ctx.globalAlpha = Math.min(1, ctx.globalAlpha * a);
   ctx.drawImage(scratch, 0, 0, size, size, m.e - cx, m.f - cy, size, size);
   ctx.restore();
+}
+
+/**
+ * Draws a figure flattened to one colour over a figure already drawn there, using the caller's current
+ * transform. The figure is rendered to a scratch buffer, filled with `tint` where it is opaque, then composited
+ * onto `ctx` with `op` at `a`. That round trip through another canvas makes the GPU stop and catch up, about a
+ * millisecond each on a phone, so it is for figures drawn once (baked corpses, portraits); in play, use drawWithTints.
+ */
+export function drawTinted(ctx: CanvasRenderingContext2D, draw: (c: CanvasRenderingContext2D) => void, tint: string, a: number, op: GlobalCompositeOperation = 'lighter', reach = 130) {
+  stampTinted(ctx, draw, tint, a, op, reach);
+}
+
+// The colours a tint turns each colour into. Tint strengths change smoothly (a hit flash fades), so they are
+// rounded to a few steps to keep this small, and it is emptied if a long fight fills it anyway.
+const tintedColours = new Map<string, string>();
+const parsedColours = new Map<string, number[] | null>();
+let parser: CanvasRenderingContext2D | null = null;
+
+/** [r, g, b, a] (0-255, alpha 0-1) for any CSS colour, or null if it isn't one. */
+function parseColour(c: string): number[] | null {
+  let v = parsedColours.get(c);
+  if (v !== undefined) return v;
+  parser ??= document.createElement('canvas').getContext('2d')!;
+  parser.fillStyle = '#010203';
+  parser.fillStyle = c;
+  const n = parser.fillStyle as string;
+  if (n === '#010203' && c.replace(/\s/g, '').toLowerCase() !== '#010203') v = null;
+  else if (n[0] === '#') v = [parseInt(n.slice(1, 3), 16), parseInt(n.slice(3, 5), 16), parseInt(n.slice(5, 7), 16), 1];
+  else v = n.slice(n.indexOf('(') + 1, -1).split(',').map(Number);
+  if (parsedColours.size > 4000) parsedColours.clear();
+  parsedColours.set(c, v);
+  return v;
+}
+
+/** Steps tint strengths are rounded to. */
+const STEPS = 48;
+
+function tintColour(c: string, tints: Tint[]): string {
+  let key = c;
+  for (const t of tints) key += `|${t.color}${t.op ?? ''}${Math.round(t.a * STEPS)}`;
+  let out = tintedColours.get(key);
+  if (out !== undefined) return out;
+  const v = parseColour(c);
+  if (!v) out = c;
+  else {
+    let [r, g, b] = v;
+    for (const t of tints) {
+      const k = Math.round(t.a * STEPS) / STEPS;
+      const tc = parseColour(t.color) ?? [255, 255, 255, 1];
+      // As if the figure were drawn, then the tint laid over it: added to it ('lighter'), or painted over it.
+      if ((t.op ?? 'lighter') === 'lighter') {
+        r = Math.min(255, r + tc[0] * k);
+        g = Math.min(255, g + tc[1] * k);
+        b = Math.min(255, b + tc[2] * k);
+      } else {
+        r += (tc[0] - r) * k;
+        g += (tc[1] - g) * k;
+        b += (tc[2] - b) * k;
+      }
+    }
+    out = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${v[3]})`;
+  }
+  if (tintedColours.size > 4000) tintedColours.clear();
+  tintedColours.set(key, out);
+  return out;
+}
+
+/** Each context's methods, called on it, so a stand-in for it can hand them out without making new ones each time. */
+const boundMethods = new WeakMap<CanvasRenderingContext2D, Map<PropertyKey, unknown>>();
+
+/**
+ * A stand-in for `ctx` that draws everything in tinted colours: each fill, stroke and gradient colour is
+ * shifted as the tints would shift it. Drawing a figure through it costs the same as drawing it plainly.
+ */
+function tintedContext(ctx: CanvasRenderingContext2D, tints: Tint[]): CanvasRenderingContext2D {
+  let bound = boundMethods.get(ctx);
+  if (!bound) boundMethods.set(ctx, (bound = new Map()));
+  const methods = bound;
+  const gradient = (g: CanvasGradient) => {
+    const add = g.addColorStop.bind(g);
+    g.addColorStop = (offset: number, colour: string) => add(offset, tintColour(colour, tints));
+    return g;
+  };
+  return new Proxy(ctx, {
+    get(target, key) {
+      if (key === 'createLinearGradient' || key === 'createRadialGradient' || key === 'createConicGradient') {
+        return (...a: number[]) => gradient((target[key] as (...a: number[]) => CanvasGradient)(...a));
+      }
+      const v = Reflect.get(target, key, target);
+      if (typeof v !== 'function') return v;
+      let f = methods.get(key);
+      // Looked up on each call rather than bound once, so the method called is whatever the context has now.
+      if (!f) methods.set(key, (f = (...a: unknown[]) => (target as unknown as Record<PropertyKey, (...a: unknown[]) => unknown>)[key](...a)));
+      return f;
+    },
+    set(target, key, value) {
+      if ((key === 'fillStyle' || key === 'strokeStyle') && typeof value === 'string') value = tintColour(value, tints);
+      return Reflect.set(target, key, value, target);
+    },
+  });
+}
+
+/**
+ * Draws a figure with tints laid over it (hit flashes, chill, poison, a Forgewright's heat), as drawTinted over
+ * a plain draw would, but drawing it only once: every colour it uses is shifted toward the tints instead.
+ */
+export function drawWithTints(ctx: CanvasRenderingContext2D, draw: (c: CanvasRenderingContext2D) => void, tints: Tint[]) {
+  const on = tints.filter((t) => t.a > 0);
+  draw(on.length ? tintedContext(ctx, on) : ctx);
 }
 
 // ------------------------------------------------------------------ humanoids

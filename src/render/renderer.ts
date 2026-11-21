@@ -7,7 +7,7 @@ import { Camera, TILE_H, TILE_W } from './camera';
 import { baseIconCanvas } from './icons';
 import { Weather } from './weather';
 import { floorTile, treeSprite, wallBlock, WALL_H, TREE_W, TREE_H } from './sprites';
-import { bake, drawBaked, drawHumanoid, drawTinted, shade, type Baked, type HumanoidLook, type Pose } from './figures';
+import { bake, drawBaked, drawHumanoid, drawTinted, drawWithTints, shade, type Baked, type HumanoidLook, type Pose, type Tint } from './figures';
 import { drawMonsterShape } from './creatures';
 import { heroLook, npcLook } from './looks';
 
@@ -487,15 +487,16 @@ export class Renderer {
       ctx.scale(1, 1 - 0.3 * Math.sin(k * Math.PI));
     }
     const look = this.playerLook(w);
-    drawHumanoid(ctx, look, pose, this.time);
     const frozen = w.frost > 0.5;
+    const tints: Tint[] = [];
     const tint = p.hurt > 0 ? '#ff4020' : p.chill > 0 || frozen ? '#3080ff' : p.poison.t > 0 ? '#40a010' : null;
-    if (tint) drawTinted(ctx, (c) => drawHumanoid(c, look, pose, this.time), tint, p.hurt > 0 ? p.hurt * 1.2 : frozen ? 0.2 + 0.25 * w.frost : 0.3);
+    if (tint) tints.push({ color: tint, a: p.hurt > 0 ? p.hurt * 1.2 : frozen ? 0.2 + 0.25 * w.frost : 0.3 });
     // A Forgewright glows as Heat builds: a dull orange, flaring when overheated, white under White Heat.
     if (p.heat > 30 && !p.dead) {
       const hot = p.buffs.white_heat ? 0.4 : p.overheat ? 0.34 + 0.14 * Math.sin(this.time * 14) : ((p.heat - 30) / 70) * 0.26;
-      drawTinted(ctx, (c) => drawHumanoid(c, look, pose, this.time), p.buffs.white_heat ? '#fff0c0' : p.overheat ? '#ff3a10' : '#ff7a18', hot);
+      tints.push({ color: p.buffs.white_heat ? '#fff0c0' : p.overheat ? '#ff3a10' : '#ff7a18', a: hot });
     }
+    drawWithTints(ctx, (c) => drawHumanoid(c, look, pose, this.time), tints);
     ctx.restore();
     if (w.cold && !p.dead) {
       // Vhorza's ember, carried at the chest: bright while it has heat, a dull red seed when it is nearly out.
@@ -631,9 +632,13 @@ export class Renderer {
       };
       if (m.deadT < CORPSE_SETTLE) {
         this.corpses.delete(m);
-        body(ctx);
-        if (how === 'shock' && m.deadT < 0.8 && Math.sin(this.time * 60) > 0) drawTinted(ctx, corpse, '#80b0ff', 0.6 * (1 - m.deadT / 0.8));
-        if (how === 'burn' && m.deadT < 1.5) drawTinted(ctx, corpse, '#ff5010', 0.3 * (1 - m.deadT / 1.5));
+        // The same as body, plus the fading flash, with the corpse drawn once for all of them.
+        const tints: Tint[] = [];
+        if (how === 'burn') tints.push({ color: '#140e0a', a: 0.85, op: 'source-over' });
+        if (how === 'melt') tints.push({ color: '#4a6a20', a: 0.6, op: 'source-over' });
+        if (how === 'shock' && m.deadT < 0.8 && Math.sin(this.time * 60) > 0) tints.push({ color: '#80b0ff', a: 0.6 * (1 - m.deadT / 0.8) });
+        if (how === 'burn' && m.deadT < 1.5) tints.push({ color: '#ff5010', a: 0.3 * (1 - m.deadT / 1.5) });
+        drawWithTints(ctx, corpse, tints);
       } else {
         // A corpse lies there for most of a minute: draw it once and stamp it after that.
         let hit = this.corpses.get(m);
@@ -718,14 +723,14 @@ export class Renderer {
     const id = m.def.id;
     const mt = this.time + m.id;
     const opts = { id, asleep: m.wyrm === 'asleep' };
-    drawMonsterShape(ctx, shape, color, pose, mt, opts);
-    if (opts.asleep) this.text('z', s.x + (30 + ((this.time * 6) % 12)) * z, s.y - (34 + ((this.time * 9) % 18)) * z, '#c8b890', 12);
     const poisoned = m.poison.t > 0;
+    const tints: Tint[] = [];
     if (m.flash > 0 || m.chill > 0 || poisoned || this.hoverId === m.id) {
       const a = m.flash > 0 ? 0.55 : this.hoverId === m.id ? 0.25 : 0.35;
-      const tint = m.flash > 0 ? '#ffffff' : m.chill > 0 ? '#3080ff' : poisoned ? '#40a010' : '#806040';
-      drawTinted(ctx, (c) => drawMonsterShape(c, shape, color, pose, mt, opts), tint, a);
+      tints.push({ color: m.flash > 0 ? '#ffffff' : m.chill > 0 ? '#3080ff' : poisoned ? '#40a010' : '#806040', a });
     }
+    drawWithTints(ctx, (c) => drawMonsterShape(c, shape, color, pose, mt, opts), tints);
+    if (opts.asleep) this.text('z', s.x + (30 + ((this.time * 6) % 12)) * z, s.y - (34 + ((this.time * 9) % 18)) * z, '#c8b890', 12);
     ctx.restore();
     if ((m.burnT ?? 0) > 0 || (m.def.slag && heat >= SLAG_MOLTEN)) {
       // Ablaze: warm to stand beside.
