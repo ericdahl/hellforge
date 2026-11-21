@@ -29,3 +29,9 @@ Every change a player can notice is a release. Docs, tests and refactors are not
 - e2e needs `npx playwright install chromium` once. Specs start with `/?autostart&class=<class>&seed=<n>` (a fresh hero, no menu) and drive the game through `window.game` (e.g. `game.open('skills')`, `game.world.char`).
 - UI must work on phones: Playwright runs phone portrait (390×844), phone landscape (844×390) and desktop, and specs save screenshots to `test-results/`. Look at them after UI changes.
 - After changing combat numbers, run `npm run balance` (about 5 minutes) and commit the `BALANCE.md` diff.
+- After changing drawing, run `npm run perf` (about a minute) and commit the `PERF.md` diff. Frame rates there swing by a few frames a second between runs; canvas calls don't. `e2e/perf.spec.ts` fails if a monster or a tint gets much costlier to draw.
+
+## Drawing fast on phones
+
+- On a phone the canvas is painted on the GPU after the script returns, so script time alone misses most of a frame's cost. `adaptResolution` in `src/ui/game.ts` judges by the time between frames for that reason.
+- Don't draw through an off-screen canvas every frame (`drawTinted`, `bake`): each one makes the GPU stop and catch up, about a millisecond on a phone. For tints in play use `drawWithTints`, which shifts the figure's colours instead. `drawTinted` is for figures drawn once, like baked corpses.

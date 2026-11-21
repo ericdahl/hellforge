@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.26.2',
+    date: '2026-11-21',
+    notes: [
+      'Fights on phones run smoother. Monsters that flash when hit, or glow blue with cold or green with poison, used to cost the phone several times as much to draw as the rest of the monster, so a few of them at once made the game stutter. They now cost about the same as any other monster and look the same as before. Your hero flashing when hurt and a Forgewright glowing with Heat are cheaper in the same way.',
+      'When a phone does fall behind, the game now notices and draws the world at a lower resolution until it catches up. Before, it often missed the slowdown and stayed at full sharpness.',
+    ],
+  },
+  {
     version: '0.26.1',
     date: '2026-11-19',
     notes: [

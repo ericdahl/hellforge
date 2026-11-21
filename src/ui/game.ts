@@ -33,12 +33,18 @@ export class Game implements PanelHost {
   /** Smoothed time between animation frames, in milliseconds: the display's refresh interval. */
   private rafMs = 1000 / 60;
   private skipFrame = false;
+  /** Smoothed time between the frames we draw, in milliseconds: what the player sees, GPU time included. */
+  private frameMs = 1000 / 60;
   /** Smoothed time spent stepping the world and drawing a frame, in milliseconds. */
   private workMs = 0;
   private slowT = 0;
   private fastT = 0;
   /** Seconds to wait after a resolution change before judging again. */
   private settleT = 0;
+  /** Seconds of quick frames needed before drawing sharper; doubles each time sharper turns out too slow. */
+  private upWait = 5;
+  /** Seconds since the resolution was last raised, or Infinity once it has been lowered since. */
+  private sinceUp = Infinity;
   private acc = 0;
   private saveT = 0;
   private running = true;
@@ -156,20 +162,28 @@ export class Game implements PanelHost {
       return;
     }
     this.workMs += (ms - this.workMs) * 0.1;
+    this.frameMs += (dt * 1000 - this.frameMs) * 0.1;
+    this.sinceUp += dt;
+    // Sharper has held for half a minute: the lag that kept it down has passed.
+    if (this.sinceUp > 30 && this.sinceUp < Infinity) this.upWait = 5;
     if (this.settleT > 0) {
       this.settleT -= dt;
       return;
     }
-    // A 60 Hz frame is 16.7 ms. Past 14 ms of our own work the browser has no room left and frames drop.
-    // Well under half of it there is room to draw sharper. The gap between the two keeps it from flipping
-    // back and forth, and stepping up waits longer than stepping down so a passing lull doesn't bring the lag back.
-    this.slowT = this.workMs > 14 ? this.slowT + dt : 0;
-    this.fastT = this.workMs < 7 ? this.fastT + dt : 0;
-    const dir = this.slowT > 1.5 ? -1 : this.fastT > 5 ? 1 : 0;
+    // Our own script time misses most of the cost: on a phone the pixels are painted on the GPU after the
+    // script returns. So judge by how often frames actually arrive. The world moves 60 times a second
+    // (16.7 ms); frames coming slower than 50 a second (20 ms) are lag the player can see.
+    this.slowT = this.frameMs > 20 ? this.slowT + dt : 0;
+    // Quick frames can't show how much room the GPU has left, so try sharper after a while and back off
+    // (waiting twice as long next time) if that brings the lag back soon after.
+    this.fastT = this.frameMs < 18 && this.workMs < 7 ? this.fastT + dt : 0;
+    const dir = this.slowT > 1.5 ? -1 : this.fastT > this.upWait ? 1 : 0;
     if (dir && this.renderer.stepResolution(dir)) {
       this.resize();
+      if (dir < 0 && this.sinceUp < 8) this.upWait = Math.min(60, this.upWait * 2);
+      this.sinceUp = dir > 0 ? 0 : Infinity;
       this.slowT = this.fastT = 0;
-      // The smoothed time still remembers the old resolution; let it catch up.
+      // The smoothed times still remember the old resolution; let them catch up.
       this.settleT = 2;
     }
   }

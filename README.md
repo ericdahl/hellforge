@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.26.2 | | Smoother fights on phones: hit flashes, chill, poison and Heat glows are drawn in shifted colours in one pass instead of through a second canvas (about 5× cheaper each); the resolution steps down when frames arrive late, not only when the game's own script runs long |
 | 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |
 | 0.26.0 | | The Daily Descent: a daily seeded Underforge run, the same floors for everyone that day, with a result card to copy; save version 4 |
 | 0.25.2 | | Town Portal opens a portal and leaves you to step through it, instead of taking you to town at once |
@@ -211,6 +212,7 @@ npm test           # Vitest: engine unit tests, world simulation, and a bot that
 npm run e2e        # Playwright on phone-landscape, phone-portrait and desktop (screenshots land in test-results/)
 npm run typecheck
 npm run balance    # the bot plays every class through all three acts on three seeds and rewrites BALANCE.md (about 5 minutes)
+npm run perf       # times set scenes on a phone-sized screen with the CPU slowed 4x and rewrites PERF.md (about a minute)
 ```
 
 `BALANCE.md` is the bot's balance report: time, deaths, potions and time to kill for each class in each act and area, with the classes that are out of line with the others listed at the top. It is committed so that running `npm run balance` after a change shows what moved as a diff. `BALANCE_SEEDS=99` or `BALANCE_CLASSES=reaver,arcanist` narrows a run, and `BALANCE_OUT=path` writes somewhere else.
@@ -229,4 +231,5 @@ npm run balance    # the bot plays every class through all three acts on three s
 | `src/ui/heroselect.ts` | The New Hero campfire scene and saved-hero portraits, drawn with the game's own figure code (`drawHumanoid`), so a new class or a change to a look shows up there with no extra art |
 | `src/ui/` | DOM HUD, panels, title screen, input, audio, saves |
 | `tests/` | Vitest suites (`bot.ts` is the playthrough bot used by `act.test.ts`; `balance.ts` turns its runs into `BALANCE.md`, and `balance.report.ts` is the runner behind `npm run balance`) |
-| `e2e/` | Playwright specs |
+| `e2e/` | Playwright specs. `perf.spec.ts` holds the canvas-call budgets for the world and for each monster, plain and tinted |
+| `perf/`, `playwright.perf.config.ts`, `PERF.md` | `npm run perf`: frame rate, slowest frames, script time and canvas calls for an empty field and crowds of 3, 6 and 12 imps (plain, flashing, chilled) at pixel ratios 2 and 1. Headless Chromium paints in software, so compare runs rather than reading the frame rates as a phone's. `PERF_THROTTLE=1` runs at full speed, `PERF_OUT=path` writes somewhere else |
