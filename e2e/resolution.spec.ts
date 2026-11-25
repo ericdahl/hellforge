@@ -86,3 +86,18 @@ test("frames that come late lower the resolution even when the game's own work i
   expect(await page.evaluate(() => (window as any).game.workMs as number)).toBeLessThan(14);
   await elsewhereCost(page, null);
 });
+
+test('?dpr holds the resolution and ?fps shows frame timing', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'a desktop is at pixel ratio 1 already');
+  test.setTimeout(60_000);
+  await page.goto('/?autostart&class=reaver&seed=3&fps&dpr=1');
+  await page.waitForFunction(() => !!(window as any).game);
+  await expect(page.locator('.fps')).toContainText(/\d+ fps/);
+  await expect(page.locator('.fps')).toContainText('dpr 1 ');
+
+  // Quick frames would raise it after a few seconds if it weren't held.
+  await drawCost(page, -1);
+  await page.waitForTimeout(8_000);
+  expect(await ratio(page)).toBe(1);
+  await drawCost(page, null);
+});

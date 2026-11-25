@@ -11,7 +11,7 @@ npm run dev        # http://localhost:5173 (also exposed on your LAN so you can 
 
 `npm run build` writes a static site to `dist/` that you can host anywhere (it is published to GitHub Pages from this repo, at <https://ericdahl.github.io/hellforge/>). On a phone, "Add to Home Screen" runs it fullscreen. Landscape is recommended, but portrait works too.
 
-URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero.
+URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero, `?fps` shows frame rate, script time and pixel ratio, `?dpr=1` holds the pixel ratio (no stepping up or down).
 
 ## Controls
 

@@ -44,6 +44,7 @@ export class Renderer {
   private dpr = 1;
   /** Highest pixel ratio to draw at; lowered by `stepResolution` when drawing can't keep up. */
   private maxDpr = 2;
+  private fixedDpr = false;
   labels: LabelRect[] = [];
   showLabels = true;
   automap: 'off' | 'mini' | 'full' = 'mini';
@@ -78,11 +79,18 @@ export class Renderer {
     return this.dpr;
   }
 
+  /** Draws at `r` (never above the device's own ratio) and stops `stepResolution` changing it. */
+  fixPixelRatio(r: number) {
+    this.maxDpr = r;
+    this.fixedDpr = true;
+  }
+
   /**
    * Lowers (-1) or raises (+1) the pixel ratio a notch, never above the device's own ratio (capped at 2) or
    * below 1. Returns whether it changed; the caller then calls `resize` to apply it.
    */
   stepResolution(dir: -1 | 1): boolean {
+    if (this.fixedDpr) return false;
     const device = Math.min(2, window.devicePixelRatio || 1);
     const ratios = [device, ...DPR_STEPS.filter((r) => r < device && r >= 1)];
     let i = ratios.findIndex((r) => r <= this.dpr);
