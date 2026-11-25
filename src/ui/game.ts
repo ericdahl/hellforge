@@ -57,6 +57,9 @@ export class Game implements PanelHost {
   private paused = false;
   private storyOpen = false;
   private onExit: () => void;
+  /** The `?fps` overlay, refreshed a few times a second. */
+  private fpsEl: HTMLElement | null = null;
+  private fpsT = 0;
 
   constructor(root: HTMLElement, char: Character, onExit: () => void, seed?: number) {
     this.root = root;
@@ -74,6 +77,16 @@ export class Game implements PanelHost {
     this.audio.setMusic(this.settings.music);
     this.buildHud();
     this.bindInput();
+    // Debug switches for checking performance on a real device: ?fps shows frame timing, ?dpr=<n> holds the pixel ratio.
+    const q = new URLSearchParams(location.search);
+    if (q.has('dpr')) this.renderer.fixPixelRatio(Number(q.get('dpr')) || 1);
+    if (q.has('fps')) {
+      this.fpsEl = h('div', {
+        class: 'fps',
+        style: { position: 'fixed', left: '4px', top: '4px', zIndex: '1000', pointerEvents: 'none', font: '11px monospace', color: '#9f9', background: 'rgba(0,0,0,0.6)', padding: '2px 4px', whiteSpace: 'pre' },
+      });
+      root.append(this.fpsEl);
+    }
     this.resize();
     window.addEventListener('resize', this.resize);
     document.addEventListener('visibilitychange', this.onHide);
@@ -146,6 +159,7 @@ export class Game implements PanelHost {
     this.updateMusic();
     this.renderer.render(w, this.paused ? 0 : frozen ? dt * 0.1 : dt);
     this.adaptResolution(performance.now() - t0, dt);
+    this.updateFps(dt);
     this.updateHud();
     this.saveT += dt;
     if (this.saveT > 15) {
@@ -186,6 +200,17 @@ export class Game implements PanelHost {
       // The smoothed times still remember the old resolution; let them catch up.
       this.settleT = 2;
     }
+  }
+
+  private updateFps(dt: number) {
+    if (!this.fpsEl) return;
+    this.fpsT -= dt;
+    if (this.fpsT > 0) return;
+    this.fpsT = 0.25;
+    const device = window.devicePixelRatio || 1;
+    this.fpsEl.textContent =
+      `${Math.round(1000 / this.frameMs)} fps  ${this.frameMs.toFixed(1)} ms/frame\n` +
+      `work ${this.workMs.toFixed(1)} ms  dpr ${this.renderer.pixelRatio} (device ${+device.toFixed(2)})`;
   }
 
   /** Feed the score how hard the fight is and how close to death the player is. */
