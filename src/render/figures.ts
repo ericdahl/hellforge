@@ -266,6 +266,140 @@ export function drawBaked(ctx: CanvasRenderingContext2D, b: Baked) {
   ctx.restore();
 }
 
+// ------------------------------------------------------------------ figure cache
+
+/**
+ * The box every standing figure fits in, in its own units, from its feet: measured across every monster and
+ * townsfolk in every pose (the Warden reaches highest, at 103), with a little room to spare.
+ */
+const FIG_LEFT = 64;
+const FIG_UP = 110;
+const FIG_DOWN = 14;
+
+interface CachedFigure {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  key: string;
+  slot: number;
+  scale: number;
+  used: number;
+  drawn: number;
+}
+
+/**
+ * Frames a figure is stamped for at the least before its animation moves on. Without it a phone that falls behind
+ * (under 15 frames a second for a monster) would redraw every figure every frame and the cache would save nothing.
+ */
+const MIN_FRAMES = 3;
+
+/**
+ * Living figures (monsters, townsfolk) redrawn into a canvas of their own a few times a second and stamped as
+ * one image on the frames between. Each figure is dozens of curved paths that a phone must rasterize again every
+ * time; a stamp is one image. Each figure keeps its own canvas, read frames after it was drawn, so stamping it
+ * doesn't make the GPU stop and catch up the way drawing through a shared scratch canvas each frame does.
+ */
+export class FigureCache {
+  private figs = new Map<number, CachedFigure>();
+  private frame = 0;
+
+  /**
+   * Draws figure `id` at the caller's current transform. It is redrawn when `key` changes (what it is, which way it
+   * faces, starting or stopping a walk or attack, a tint coming on) or `rate` times a second for its animation, each
+   * figure at its own moment so they don't all redraw on the same frame, and never more often than every
+   * MIN_FRAMES frames.
+   */
+  draw(ctx: CanvasRenderingContext2D, id: number, key: string, time: number, rate: number, draw: (c: CanvasRenderingContext2D) => void) {
+    const m = ctx.getTransform();
+    // Only plain scales and moves are cached; anything rotated or skewed is drawn as it is.
+    if (m.b !== 0 || m.c !== 0 || m.a <= 0 || m.a !== m.d) {
+      draw(ctx);
+      return;
+    }
+    const s = m.a;
+    const slot = Math.floor(time * rate + ((id * 0.618) % 1));
+    let f = this.figs.get(id);
+    if (!f || f.key !== key || f.scale !== s || (f.slot !== slot && this.frame - f.drawn >= MIN_FRAMES)) {
+      const w = Math.ceil(FIG_LEFT * 2 * s);
+      const h = Math.ceil((FIG_UP + FIG_DOWN) * s);
+      if (!f) {
+        const canvas = document.createElement('canvas');
+        f = { canvas, ctx: canvas.getContext('2d')!, key, slot, scale: s, used: 0, drawn: 0 };
+        this.figs.set(id, f);
+      }
+      if (f.canvas.width !== w || f.canvas.height !== h) {
+        f.canvas.width = w;
+        f.canvas.height = h;
+      } else {
+        f.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        f.ctx.clearRect(0, 0, w, h);
+      }
+      f.ctx.setTransform(s, 0, 0, s, FIG_LEFT * s, FIG_UP * s);
+      draw(f.ctx);
+      f.key = key;
+      f.slot = slot;
+      f.scale = s;
+      f.drawn = this.frame;
+    }
+    f.used = this.frame;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Whole device pixels: an image stamped between them is resampled, which softens it.
+    ctx.drawImage(f.canvas, Math.round(m.e - FIG_LEFT * s), Math.round(m.f - FIG_UP * s));
+    ctx.restore();
+  }
+
+  /** Call once a frame: lets go of figures that haven't been drawn for a couple of seconds. */
+  sweep() {
+    this.frame++;
+    if (this.frame % 60) return;
+    for (const [id, f] of this.figs) if (this.frame - f.used > 120) this.figs.delete(id);
+  }
+
+  clear() {
+    this.figs.clear();
+  }
+}
+
+/** Text with a dark outline, drawn once per text, colour and size and stamped after that. */
+const labelImages = new Map<string, { canvas: HTMLCanvasElement; w: number; h: number }>();
+
+/**
+ * Draws `text` centred on (x, y) in the caller's units, as Renderer.text does, from a cached image. Outlined
+ * canvas text is turned into paths and stroked again every call, which is slow on phones; names over
+ * townsfolk don't change, so they are drawn once.
+ */
+export function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string, size: number, bold = false) {
+  const m = ctx.getTransform();
+  const s = m.a;
+  const font = `${bold ? 'bold ' : ''}${size}px Georgia, serif`;
+  const key = `${text}|${color}|${font}|${s}`;
+  let img = labelImages.get(key);
+  if (!img) {
+    const canvas = document.createElement('canvas');
+    const c = canvas.getContext('2d')!;
+    c.font = font;
+    const w = Math.ceil(c.measureText(text).width + 8);
+    const h = Math.ceil(size * 1.6 + 6);
+    canvas.width = Math.ceil(w * s);
+    canvas.height = Math.ceil(h * s);
+    c.setTransform(s, 0, 0, s, 0, 0);
+    c.font = font;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.lineWidth = 3;
+    c.strokeStyle = 'rgba(0,0,0,0.85)';
+    c.strokeText(text, w / 2, h / 2);
+    c.fillStyle = color;
+    c.fillText(text, w / 2, h / 2);
+    if (labelImages.size > 200) labelImages.clear();
+    labelImages.set(key, (img = { canvas, w, h }));
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(img.canvas, Math.round(m.a * (x - img.w / 2) + m.e), Math.round(m.d * (y - img.h / 2) + m.f));
+  ctx.restore();
+}
+
 // ------------------------------------------------------------------ tinting
 
 /** A flat colour laid over a figure where it is opaque, composited with `op` (default 'lighter') at `a`. */

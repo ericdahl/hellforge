@@ -70,13 +70,14 @@ test('drawing a crowd stays within its canvas budget', async ({ page, isMobile }
 
   // The fields, the hero and the HUD on the canvas, before any monster.
   expect(empty.total).toBeLessThan(900);
-  // An imp is a few dozen paths.
-  expect(per(plain)).toBeLessThan(80);
+  // An imp is a few dozen paths, redrawn into its own image a few times a second and stamped in between.
+  expect(per(plain)).toBeLessThan(30);
   // A tinted monster is drawn once in shifted colours: not a second time, and not through another canvas,
   // which makes a phone's GPU stop and catch up.
   for (const s of [flash, chill]) {
     expect(per(s)).toBeLessThan(per(plain) + 4);
-    // A scratch buffer is cleared for each figure drawn through it.
-    expect(s.clearRect).toBe(plain.clearRect);
+    // A scratch buffer is cleared for each figure drawn through it, every frame. Cached figures clear their own
+    // image only when they redraw it, which comes and goes, so allow a little either way.
+    expect(Math.abs(s.clearRect - plain.clearRect)).toBeLessThan(3);
   }
 });

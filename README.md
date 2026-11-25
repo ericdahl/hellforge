@@ -11,7 +11,7 @@ npm run dev        # http://localhost:5173 (also exposed on your LAN so you can 
 
 `npm run build` writes a static site to `dist/` that you can host anywhere (it is published to GitHub Pages from this repo, at <https://ericdahl.github.io/hellforge/>). On a phone, "Add to Home Screen" runs it fullscreen. Landscape is recommended, but portrait works too.
 
-URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero, `?fps` shows frame rate, script time and pixel ratio, `?dpr=1` holds the pixel ratio (no stepping up or down).
+URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero, `?fps` shows frame rate, script time and pixel ratio, `?dpr=1` holds the pixel ratio (no stepping up or down), `?nocache` draws monsters and townsfolk from scratch every frame instead of from cached images.
 
 ## Controls
 
@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.26.3 | | Monsters and townsfolk drawn from cached images refreshed a few times a second; `?nocache` turns it off |
 | 0.26.2 | | Smoother fights on phones: hit flashes, chill, poison and Heat glows are drawn in shifted colours in one pass instead of through a second canvas (about 5× cheaper each); the resolution steps down when frames arrive late, not only when the game's own script runs long |
 | 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |
 | 0.26.0 | | The Daily Descent: a daily seeded Underforge run, the same floors for everyone that day, with a result card to copy; save version 4 |

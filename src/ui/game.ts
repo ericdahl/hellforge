@@ -72,6 +72,7 @@ export class Game implements PanelHost {
     this.renderer.showLabels = this.settings.labels;
     this.renderer.showWeather = this.settings.weather;
     this.renderer.screenFx = this.settings.screenFx;
+    this.renderer.cacheFigures = !new URLSearchParams(location.search).has('nocache');
     this.renderer.automap = this.settings.automap === 'full' ? 'mini' : this.settings.automap;
     this.audio.setEnabled(this.settings.sound);
     this.audio.setMusic(this.settings.music);
