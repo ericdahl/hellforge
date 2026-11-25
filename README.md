@@ -11,7 +11,7 @@ npm run dev        # http://localhost:5173 (also exposed on your LAN so you can 
 
 `npm run build` writes a static site to `dist/` that you can host anywhere (it is published to GitHub Pages from this repo, at <https://ericdahl.github.io/hellforge/>). On a phone, "Add to Home Screen" runs it fullscreen. Landscape is recommended, but portrait works too.
 
-URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero, `?fps` shows frame rate, script time and pixel ratio, `?dpr=1` holds the pixel ratio (no stepping up or down).
+URL options: `?seed=123` fixes the world layout, `?autostart&class=huntress` skips the menu with a fresh hero, `?fps` shows frame rate, script time and pixel ratio, `?dpr=1` holds the pixel ratio (no stepping up or down), and `?off=floor,sprites,lighting,weather` leaves those layers out, to see what each costs on a device.
 
 ## Controls
 
@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.26.3 | | Faster on phones: the floor is drawn once into a picture a little larger than the screen and stamped as one image, shifted as the camera moves and added to as ground is explored, instead of several hundred tiles a frame |
 | 0.26.2 | | Smoother fights on phones: hit flashes, chill, poison and Heat glows are drawn in shifted colours in one pass instead of through a second canvas (about 5× cheaper each); the resolution steps down when frames arrive late, not only when the game's own script runs long |
 | 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |
 | 0.26.0 | | The Daily Descent: a daily seeded Underforge run, the same floors for everyone that day, with a result card to copy; save version 4 |
@@ -226,6 +227,7 @@ npm run perf       # times set scenes on a phone-sized screen with the CPU slowe
 | `src/game/hireling.ts` | Hirelings: the three kinds, their names and what they cost. They live in `world.minions` with `ally: 'hireling'` and are kept on the hero as `char.hireling` |
 | `src/game/skilltree.ts` | Where each class's skills sit in the tree (`SKILL_TREES`: three branches, optional second column). Rows come from `reqLevel` and lines from `prereq`, so a new skill only needs adding to its branch. `tests/skilltree.test.ts` fails if a line would cross another skill |
 | `src/render/` | Canvas renderer: isometric camera, procedural sprites, lighting, automap, item/skill icons |
+| `src/render/ground.ts` | The floor as one picture: drawn once around the screen, shifted when the camera nears its edge (only the uncovered strip is drawn) and added to as tiles are explored. Lava and quicksand are drawn over it each frame |
 | `src/render/figures.ts`, `creatures.ts`, `looks.ts` | Character art: the shading kit and humanoids, monster bodies, and what the hero and townsfolk wear |
 | `gallery.html` | Dev-only page (`npm run dev`, then `/gallery.html`) showing every character model in several poses; `?zoom=4&m=imp,bat` narrows it |
 | `src/ui/heroselect.ts` | The New Hero campfire scene and saved-hero portraits, drawn with the game's own figure code (`drawHumanoid`), so a new class or a change to a look shows up there with no extra art |

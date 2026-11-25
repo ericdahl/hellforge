@@ -69,7 +69,7 @@ test('drawing a crowd stays within its canvas budget', async ({ page, isMobile }
   console.log(`canvas calls per frame: empty ${empty.total}, per monster ${per(plain)}, per flashing monster ${per(flash)}, per chilled monster ${per(chill)}`);
 
   // The fields, the hero and the HUD on the canvas, before any monster.
-  expect(empty.total).toBeLessThan(900);
+  expect(empty.total).toBeLessThan(500);
   // An imp is a few dozen paths.
   expect(per(plain)).toBeLessThan(80);
   // A tinted monster is drawn once in shifted colours: not a second time, and not through another canvas,

@@ -6,7 +6,8 @@ import { BRAZIER_RADIUS, LOOT_BOUNCE, ORB_LIFE, SLAG_BRITTLE, SLAG_MOLTEN, type 
 import { Camera, TILE_H, TILE_W } from './camera';
 import { baseIconCanvas } from './icons';
 import { Weather } from './weather';
-import { floorTile, treeSprite, wallBlock, WALL_H, TREE_W, TREE_H } from './sprites';
+import { treeSprite, wallBlock, WALL_H, TREE_W, TREE_H } from './sprites';
+import { BLOCKING, Ground } from './ground';
 import { bake, drawBaked, drawHumanoid, drawTinted, drawWithTints, shade, type Baked, type HumanoidLook, type Pose, type Tint } from './figures';
 import { drawMonsterShape } from './creatures';
 import { heroLook, npcLook } from './looks';
@@ -32,7 +33,7 @@ export interface LabelRect {
 }
 
 const OUTDOOR = new Set(['fields', 'forest', 'town', 'oasis', 'desert', 'glass', 'mesa', 'snow', 'snowtown']);
-const BLOCK_PROPS = new Set(['pillar', 'tent', 'campfire', 'well', 'hearth', 'ruin', 'forge']);
+const BLOCK_PROPS = BLOCKING;
 /** Pixel ratios the game can step down through when frames run slow. */
 const DPR_STEPS = [2, 1.5, 1.25, 1];
 
@@ -52,6 +53,7 @@ export class Renderer {
   /** Whether Vhorza's ember burns in the town forge. */
   private ember = false;
   private propIndex = new WeakMap<Level, Map<number, Prop>>();
+  private ground = new Ground();
   private mapCache = new WeakMap<AreaState, { canvas: HTMLCanvasElement; rev: number; ox: number; oy: number }>();
   /** Corpses that have settled, drawn once and stamped from then on. Rebaked if the zoom changes. */
   private corpses = new WeakMap<Monster, { baked: Baked; zoom: number }>();
@@ -62,6 +64,8 @@ export class Renderer {
   screenFx = true;
   /** Particle atmosphere (ash, fog, embers...). */
   showWeather = true;
+  /** Layers switched off with `?off=` to see on a real device what each costs: floor, sprites, lighting. */
+  off = new Set<string>();
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -147,33 +151,30 @@ export class Renderer {
     const outdoor = OUTDOOR.has(theme);
     const town = !!a.def.town;
 
-    // Floor pass.
-    for (let y = Math.max(0, b.y0); y <= Math.min(l.h - 1, b.y1); y++)
-      for (let x = Math.max(0, b.x0); x <= Math.min(l.w - 1, b.x1); x++) {
-        const t = l.tiles[y * l.w + x];
-        if (!a.explored[y * l.w + x] && !town) continue;
-        const pr = props.get(y * l.w + x);
-        if (t !== FLOOR && !(pr && BLOCK_PROPS.has(pr.kind)) && !outdoor && theme !== 'cave') continue;
-        const s = cam.toScreen(x, y);
-        if (s.x < -TILE_W * z || s.x > cam.w + TILE_W * z || s.y < -TILE_H * z * 2 || s.y > cam.h + TILE_H * z) continue;
-        const v = Math.floor(tileHash(x, y) * 4);
-        ctx.drawImage(floorTile(theme, v), s.x - (TILE_W / 2) * z, s.y, TILE_W * z, TILE_H * z);
-        if (pr?.kind === 'lava') {
-          ctx.fillStyle = `rgba(255,${90 + 30 * Math.sin(this.time * 2 + x)},20,0.55)`;
-          diamondPath(ctx, s.x, s.y, TILE_W * z * 0.8, TILE_H * z * 0.8);
+    // Floor pass: the floor is one picture (see Ground); lava and quicksand go over it.
+    if (!this.off.has('floor')) this.ground.draw(ctx, cam, a, props, outdoor || theme === 'cave', this.dpr);
+    for (const pr of l.props) {
+      if (pr.kind !== 'lava' && pr.kind !== 'quicksand') continue;
+      const { x, y } = pr;
+      if (x < b.x0 || x > b.x1 || y < b.y0 || y > b.y1) continue;
+      if (!a.explored[y * l.w + x] && !town) continue;
+      const s = cam.toScreen(x, y);
+      if (s.x < -TILE_W * z || s.x > cam.w + TILE_W * z || s.y < -TILE_H * z * 2 || s.y > cam.h + TILE_H * z) continue;
+      if (pr.kind === 'lava') {
+        ctx.fillStyle = `rgba(255,${90 + 30 * Math.sin(this.time * 2 + x)},20,0.55)`;
+        diamondPath(ctx, s.x, s.y, TILE_W * z * 0.8, TILE_H * z * 0.8);
+        ctx.fill();
+        lights.push({ x: x + 0.5, y: y + 0.5, r: 2.2, a: 0.5 });
+      } else {
+        // A soft blob rather than the tile's diamond, so patches read as sand and not as floor tiles.
+        ctx.fillStyle = theme === 'glass' ? 'rgba(14,46,48,0.38)' : 'rgba(84,58,30,0.34)';
+        for (const k of [1, 0.72, 0.45]) {
+          ctx.beginPath();
+          ctx.ellipse(s.x, s.y + (TILE_H * z) / 2, TILE_W * z * 0.62 * k, TILE_H * z * 0.62 * k, 0, 0, Math.PI * 2);
           ctx.fill();
-          lights.push({ x: x + 0.5, y: y + 0.5, r: 2.2, a: 0.5 });
-        }
-        if (pr?.kind === 'quicksand') {
-          // A soft blob rather than the tile's diamond, so patches read as sand and not as floor tiles.
-          ctx.fillStyle = theme === 'glass' ? 'rgba(14,46,48,0.38)' : 'rgba(84,58,30,0.34)';
-          for (const k of [1, 0.72, 0.45]) {
-            ctx.beginPath();
-            ctx.ellipse(s.x, s.y + (TILE_H * z) / 2, TILE_W * z * 0.62 * k, TILE_H * z * 0.62 * k, 0, 0, Math.PI * 2);
-            ctx.fill();
-          }
         }
       }
+    }
 
     const items: Drawable[] = [];
     const add = (depth: number, draw: () => void) => items.push({ depth, draw });
@@ -195,6 +196,7 @@ export class Renderer {
           add(depth, () => this.drawProp(pr, lights));
           continue;
         }
+        if (this.off.has('sprites')) continue;
         // Fade walls standing between the camera and the player.
         const occl = depth > p.x + p.y + 0.5 && Math.hypot(s.x - pScreen.x, (s.y - pScreen.y) * 1.6) < 150 * z;
         if (outdoor || theme === 'cave') {
@@ -330,7 +332,7 @@ export class Renderer {
     // Additive effects.
     for (const f of a.fx) this.drawFx(f, lights);
 
-    this.drawLighting(lights, Math.max(a.def.dark, 0.88 * w.storm), w.storm, a.def.blizzard ? [176, 196, 220] : [104, 72, 36]);
+    if (!this.off.has('lighting')) this.drawLighting(lights, Math.max(a.def.dark, 0.88 * w.storm), w.storm, a.def.blizzard ? [176, 196, 220] : [104, 72, 36]);
     if (this.showWeather) {
       this.weather.update(w, dt);
       this.weather.draw(ctx, cam, w);
