@@ -7,7 +7,7 @@ import { Camera, TILE_H, TILE_W } from './camera';
 import { baseIconCanvas } from './icons';
 import { Weather } from './weather';
 import { floorTile, treeSprite, wallBlock, WALL_H, TREE_W, TREE_H } from './sprites';
-import { bake, drawBaked, drawHumanoid, drawTinted, drawWithTints, shade, type Baked, type HumanoidLook, type Pose, type Tint } from './figures';
+import { bake, drawBaked, drawHumanoid, drawLabel, drawTinted, drawWithTints, FigureCache, shade, type Baked, type HumanoidLook, type Pose, type Tint } from './figures';
 import { drawMonsterShape } from './creatures';
 import { heroLook, npcLook } from './looks';
 
@@ -49,6 +49,9 @@ export class Renderer {
   showLabels = true;
   automap: 'off' | 'mini' | 'full' = 'mini';
   hoverId = -1;
+  /** Monsters and townsfolk are drawn from images redrawn a few times a second; off with `?nocache`, to compare. */
+  cacheFigures = true;
+  private figures = new FigureCache();
   /** Whether Vhorza's ember burns in the town forge. */
   private ember = false;
   private propIndex = new WeakMap<Level, Map<number, Prop>>();
@@ -125,6 +128,7 @@ export class Renderer {
 
   render(w: World, dt: number) {
     this.time += dt;
+    this.figures.sweep();
     this.ember = hasEmber(w.char);
     const ctx = this.ctx;
     const cam = this.cam;
@@ -341,11 +345,13 @@ export class Renderer {
     for (const f of a.fx) if (f.kind === 'text') this.drawFloatText(f);
     for (const n of a.npcs) {
       const s = cam.toScreen(n.x, n.y);
-      this.text(n.name, s.x, s.y - 62 * z, '#e8c860', 12);
+      if (this.cacheFigures) drawLabel(ctx, n.name, s.x, s.y - 62 * z, '#e8c860', 12);
+      else this.text(n.name, s.x, s.y - 62 * z, '#e8c860', 12);
     }
     if (l.spots.forge) {
       const s = cam.toScreen(l.spots.forge.x + 0.5, l.spots.forge.y + 0.5);
-      this.text('The Forge', s.x, s.y - 58 * z, '#ff9a4a', 12);
+      if (this.cacheFigures) drawLabel(ctx, 'The Forge', s.x, s.y - 58 * z, '#ff9a4a', 12);
+      else this.text('The Forge', s.x, s.y - 58 * z, '#ff9a4a', 12);
     }
     if (p.hurt > 0) {
       ctx.fillStyle = `rgba(160,0,0,${p.hurt * 0.6})`;
@@ -569,7 +575,10 @@ export class Renderer {
     ctx.save();
     ctx.translate(s.x, s.y + Math.sin(this.time * 1.5 + n.id) * 0.5);
     ctx.scale(z, z);
-    drawHumanoid(ctx, npcLook(n.kind, w.act), pose, this.time + n.id);
+    const draw = (c: CanvasRenderingContext2D) => drawHumanoid(c, npcLook(n.kind, w.act), pose, this.time + n.id);
+    // Townsfolk barely move, so a few redraws a second are plenty.
+    if (this.cacheFigures) this.figures.draw(ctx, n.id, `npc|${n.kind}|${w.act}|${pose.dir}|${pose.back}`, this.time, 8, draw);
+    else draw(ctx);
     ctx.restore();
   }
 
@@ -737,7 +746,12 @@ export class Renderer {
       const a = m.flash > 0 ? 0.55 : this.hoverId === m.id ? 0.25 : 0.35;
       tints.push({ color: m.flash > 0 ? '#ffffff' : m.chill > 0 ? '#3080ff' : poisoned ? '#40a010' : '#806040', a });
     }
-    drawWithTints(ctx, (c) => drawMonsterShape(c, shape, color, pose, mt, opts), tints);
+    const draw = (c: CanvasRenderingContext2D) => drawWithTints(c, (c2) => drawMonsterShape(c2, shape, color, pose, mt, opts), tints);
+    if (this.cacheFigures) {
+      // Starting or stopping a walk or a swing, or a tint coming on, shows at once; the motion in between at 15 a second.
+      const key = `${shape}|${color}|${pose.dir}|${pose.back}|${pose.moving}|${attack > 0}|${opts.asleep}|${tints.map((t) => t.color + t.a).join()}`;
+      this.figures.draw(ctx, m.id, key, this.time, 15, draw);
+    } else draw(ctx);
     if (opts.asleep) this.text('z', s.x + (30 + ((this.time * 6) % 12)) * z, s.y - (34 + ((this.time * 9) % 18)) * z, '#c8b890', 12);
     ctx.restore();
     if ((m.burnT ?? 0) > 0 || (m.def.slag && heat >= SLAG_MOLTEN)) {

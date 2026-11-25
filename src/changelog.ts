@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.26.3',
+    date: '2026-11-24',
+    notes: [
+      'Crowds of monsters and busy towns should run smoother on phones. Each monster and townsperson is now drawn as a picture that is refreshed a few times a second, instead of being drawn from scratch every frame. Their animations step a little more like classic sprites as a result.',
+      'Names over townsfolk are drawn once and reused, instead of being redrawn every frame.',
+    ],
+  },
+  {
     version: '0.26.2',
     date: '2026-11-21',
     notes: [
