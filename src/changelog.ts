@@ -1,6 +1,13 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.26.3',
+    date: '2026-11-25',
+    notes: [
+      'The game runs much faster on phones, even standing in town. The ground used to be drawn tile by tile, several hundred tiles every frame, and on some phones that alone held the game to around ten frames a second. It is now drawn once and moved as you walk, with new ground added as you explore. It looks the same as before.',
+    ],
+  },
+  {
     version: '0.26.2',
     date: '2026-11-21',
     notes: [

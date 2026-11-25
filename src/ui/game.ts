@@ -80,6 +80,10 @@ export class Game implements PanelHost {
     // Debug switches for checking performance on a real device: ?fps shows frame timing, ?dpr=<n> holds the pixel ratio.
     const q = new URLSearchParams(location.search);
     if (q.has('dpr')) this.renderer.fixPixelRatio(Number(q.get('dpr')) || 1);
+    // ?off=floor,sprites,lighting,weather leaves those out of the picture, to see what each costs.
+    const off = (q.get('off') ?? '').split(',').filter(Boolean);
+    this.renderer.off = new Set(off);
+    if (off.includes('weather')) this.renderer.showWeather = false;
     if (q.has('fps')) {
       this.fpsEl = h('div', {
         class: 'fps',
@@ -210,7 +214,8 @@ export class Game implements PanelHost {
     const device = window.devicePixelRatio || 1;
     this.fpsEl.textContent =
       `${Math.round(1000 / this.frameMs)} fps  ${this.frameMs.toFixed(1)} ms/frame\n` +
-      `work ${this.workMs.toFixed(1)} ms  dpr ${this.renderer.pixelRatio} (device ${+device.toFixed(2)})`;
+      `work ${this.workMs.toFixed(1)} ms  dpr ${this.renderer.pixelRatio} (device ${+device.toFixed(2)})` +
+      (this.renderer.off.size ? `\noff: ${[...this.renderer.off].join(', ')}` : '');
   }
 
   /** Feed the score how hard the fight is and how close to death the player is. */

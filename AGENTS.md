@@ -34,4 +34,5 @@ Every change a player can notice is a release. Docs, tests and refactors are not
 ## Drawing fast on phones
 
 - On a phone the canvas is painted on the GPU after the script returns, so script time alone misses most of a frame's cost. `adaptResolution` in `src/ui/game.ts` judges by the time between frames for that reason.
+- Every `drawImage` of a cached sprite canvas costs on a phone, far more than its pixel count suggests. The floor used to be about 540 tile images a frame and held a Pixel 9 Pro to about 11 fps in town; it is now one picture (`src/render/ground.ts`). Anything static and drawn under everything belongs there, not in a per-tile loop. `?fps` and `?off=floor,sprites,lighting,weather` show on a device what each layer costs.
 - Don't draw through an off-screen canvas every frame (`drawTinted`, `bake`): each one makes the GPU stop and catch up, about a millisecond on a phone. For tints in play use `drawWithTints`, which shifts the figure's colours instead. `drawTinted` is for figures drawn once, like baked corpses.
