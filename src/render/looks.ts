@@ -1,4 +1,4 @@
-import { baseOf, type ClassId, type Item } from '../game/items';
+import { baseOf, rootBase, type ClassId, type Item } from '../game/items';
 import type { HumanoidLookId } from '../game/monsters';
 import type { NpcKind } from '../game/world';
 import type { HumanoidLook } from './figures';
@@ -117,7 +117,7 @@ export function heroLook(classId: ClassId, eq: Gear): HumanoidLook {
   const look: HumanoidLook = { ...base };
   const caster = classId === 'arcanist' || classId === 'necromancer';
   if (eq.body) {
-    const id = eq.body.base;
+    const id = rootBase(eq.body).id;
     look.armor = ARMOR_KIND[id] ?? 'leather';
     look.body = ARMOR_COLOR[id] ?? '#6b4a2e';
     look.robe = false;
@@ -127,17 +127,17 @@ export function heroLook(classId: ClassId, eq: Gear): HumanoidLook {
     if (caster) look.tabard = base.body;
   }
   if (eq.head) {
-    const id = eq.head.base;
+    const id = rootBase(eq.head).id;
     look.head = HELM_KIND[id] ?? 'helm';
     look.headColor = HELM_COLOR[id] ?? '#8e939c';
     if (look.head === 'circlet') look.hairUnder = base.head === 'hair' ? base.headColor : classId === 'necromancer' ? '#d8d8d8' : '#3a2a20';
     else look.eyeGlow = undefined;
   }
   if (eq.weapon) {
-    const b = baseOf(eq.weapon);
+    const b = rootBase(eq.weapon);
     look.weapon = b.id === 'club' ? 'club' : b.cat!;
     look.weaponId = b.id;
-    look.weaponTier = b.qlvl >= 18 ? 3 : b.qlvl >= 9 ? 2 : 1;
+    look.weaponTier = b.qlvl >= 18 || eq.weapon.base !== b.id ? 3 : b.qlvl >= 9 ? 2 : 1;
     const r = eq.weapon.rarity;
     look.weaponGlow = r === 'unique' ? '#e8c27a' : r === 'set' ? '#60e060' : r === 'rare' ? '#f0e070' : r === 'magic' ? '#7090ff' : undefined;
   } else {
@@ -145,11 +145,11 @@ export function heroLook(classId: ClassId, eq: Gear): HumanoidLook {
   }
   if (eq.offhand && baseOf(eq.offhand).kind === 'weapon') {
     // The four-armed can hold a second weapon where anyone else has a shield.
-    const b = baseOf(eq.offhand);
+    const b = rootBase(eq.offhand);
     look.offWeapon = b.id === 'club' ? 'club' : b.cat!;
     look.offWeaponId = b.id;
   } else if (eq.offhand) {
-    const id = eq.offhand.base;
+    const id = rootBase(eq.offhand).id;
     look.shield = SHIELD_COLOR[id] ?? '#6b4a2e';
     look.shieldShape = SHIELD_KIND[id] ?? 'heater';
   }

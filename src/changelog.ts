@@ -1,6 +1,18 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.27.0',
+    date: '2026-11-27',
+    notes: [
+      'Better gear for Nightmare and Hell. Every weapon and piece of armor now comes in two finer tiers. Emberforged versions have twice the damage or defense and start dropping in Nightmare. Hellforged versions have three times and drop late in Nightmare and all through Hell. Both need more strength and a higher level, and glow in their tier\'s colour in your bags.',
+      'Items found in Nightmare and Hell can roll stronger magic properties than anything in Normal, like up to 230% enhanced damage, 45% to a resistance, or +2 to your class skills.',
+      'Twenty-six new uniques: an Emberforged and a Hellforged weapon for every class, and one of each tier for body armor, helms, shields, gloves, boots and belts. In Hell the humblest early uniques stop dropping.',
+      'Reforge at the forge: once you have reached Nightmare and your forge mastery is Master, you can rebuild an item on its Emberforged base, and at Grandmaster, once you have reached Hell, on its Hellforged one. A unique or set item grows with it. Its strength, life and other plain amounts double, then triple, and its enhanced damage and defense go up. Resistances, speeds and skill bonuses stay the same. Magic and rare items keep their properties as they are. It costs a lot of gold, Cinders and Essence of every element.',
+      'Shops sell Emberforged gear in Nightmare and Hellforged gear in Hell.',
+      'The Normal campaign drops the same things as before. Deep floors of the Underforge and gambling at a high level can turn up Emberforged gear.',
+    ],
+  },
+  {
     version: '0.26.3',
     date: '2026-11-25',
     notes: [
