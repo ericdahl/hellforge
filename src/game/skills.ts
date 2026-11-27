@@ -169,13 +169,13 @@ export const SKILLS: SkillDef[] = [
   },
   {
     id: 'critical_eye', name: 'Critical Eye', classId: 'hunter', reqLevel: 1, kind: 'passive',
-    mana: () => 0, params: (l) => ({ pct: dim(12, 5, l, 70) }),
+    mana: () => 0, params: (l) => ({ pct: dim(16, 5, l, 75) }),
     desc: 'Passive: chance to deal double physical damage.', lines: (p) => [`${p.pct}% chance of double damage`],
     color: '#e6e6e6', glyph: '◎',
   },
   {
     id: 'multishot', name: 'Multishot', classId: 'hunter', reqLevel: 6, prereq: ['power_shot'], kind: 'multishot', weapon: 'bow',
-    mana: (l) => 4 + 0.5 * l, params: (l) => ({ count: Math.min(15, 2 + l), dmgPct: -25 + 8 * l }),
+    mana: (l) => 4 + 0.5 * l, params: (l) => ({ count: Math.min(15, 2 + l), dmgPct: -10 + 10 * l }),
     desc: 'Loose a fan of arrows.', lines: (p) => [`Arrows: ${p.count}`, `${p.dmgPct! >= 0 ? '+' : ''}${p.dmgPct}% Damage`],
     color: '#b9d06a', glyph: '⋔',
   },

@@ -10,15 +10,15 @@ rectangles, images and gradients per frame, which do not depend on the machine.
 
 | Pixel ratio | Scene | Frames/s | Slowest 5% (ms) | Script ms/frame | Canvas calls/frame |
 |---|---|---|---|---|---|
-| 2 | empty field | 12 | 133.3 | 8.5 | 365 |
-| 2 | 3 monsters | 10 | 133.4 | 11.8 | 530 |
-| 2 | 6 monsters | 10 | 133.4 | 10.9 | 707 |
-| 2 | 12 monsters | 9 | 150.0 | 11.6 | 1076 |
-| 2 | 6 monsters, hit flash | 11 | 116.6 | 11.4 | 705 |
-| 2 | 6 monsters, chilled | 11 | 116.6 | 11.3 | 705 |
-| 1 | empty field | 36 | 33.4 | 6.2 | 344 |
-| 1 | 3 monsters | 29 | 50.0 | 8.4 | 530 |
-| 1 | 6 monsters | 27 | 50.0 | 9.6 | 711 |
-| 1 | 12 monsters | 23 | 66.6 | 11.6 | 1075 |
-| 1 | 6 monsters, hit flash | 27 | 50.1 | 10.1 | 711 |
-| 1 | 6 monsters, chilled | 23 | 66.7 | 11.5 | 705 |
+| 2 | empty field | 12 | 133.3 | 8.8 | 369 |
+| 2 | 3 monsters | 11 | 116.7 | 9.0 | 527 |
+| 2 | 6 monsters | 11 | 100.1 | 9.3 | 706 |
+| 2 | 12 monsters | 10 | 133.4 | 11.3 | 1071 |
+| 2 | 6 monsters, hit flash | 11 | 133.3 | 11.8 | 703 |
+| 2 | 6 monsters, chilled | 10 | 133.4 | 11.4 | 707 |
+| 1 | empty field | 33 | 50.0 | 6.6 | 339 |
+| 1 | 3 monsters | 30 | 50.0 | 8.3 | 520 |
+| 1 | 6 monsters | 27 | 50.1 | 9.4 | 708 |
+| 1 | 12 monsters | 24 | 50.1 | 10.9 | 1072 |
+| 1 | 6 monsters, hit flash | 24 | 66.7 | 10.7 | 705 |
+| 1 | 6 monsters, chilled | 24 | 66.7 | 11.4 | 706 |

@@ -1,6 +1,14 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.28.1',
+    date: '2026-11-27',
+    notes: [
+      'The Hunter is now drawn as a man, with short dark hair and a beard, on the campfire screen, in the hero list and in the game.',
+      'The Hunter hits harder and lasts longer, so the class keeps pace with the others. Multishot does more damage with every arrow at every rank. Critical Eye gives a higher chance of double damage. The Hunter starts with a little more life and gains more from each level and each point of Vitality.',
+    ],
+  },
+  {
     version: '0.28.0',
     date: '2026-11-27',
     notes: [

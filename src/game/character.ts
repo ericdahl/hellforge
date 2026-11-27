@@ -42,7 +42,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     start: ['short_staff'], starter: 'fire_bolt',
   },
   hunter: {
-    id: 'hunter', name: 'Hunter', str: 20, dex: 25, vit: 20, ene: 15, life: 50, lifePerLvl: 2, lifePerVit: 3,
+    id: 'hunter', name: 'Hunter', str: 20, dex: 25, vit: 20, ene: 15, life: 55, lifePerLvl: 2.5, lifePerVit: 4,
     mana: 15, manaPerLvl: 1.5, manaPerEne: 1.5, arBonus: 5, castTime: 0.55, color: '#4f9d58',
     desc: 'A swift archer from the deep woods, whose arrows carry arcane light and venom, and who marks the strongest prey for death.',
     start: ['short_bow'], starter: 'power_shot',
