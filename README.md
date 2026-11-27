@@ -164,6 +164,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.28.1 | | The Hunter drawn as a man (short hair, beard, standard build); Multishot damage −10% + 10% a rank (was −25% + 8%), Critical Eye `dim(16, 5, l, 75)` (was `dim(12, 5, l, 70)`), Hunter life 55 + 2.5 a level + 4 per Vitality (was 50 + 2 + 3) |
 | 0.28.0 | | The Huntress is renamed the Hunter (class id `hunter`; old saves, items and `?class=huntress` links are converted) and gets a new skill tree: Archery, Arcane and Venom. Arcane damage ignores part of resistances; the Hunter's poison stacks (others' still replaces a weaker dose); venom clouds, a beam, a marked quarry; save version 5 refunds Hunter skill points |
 | 0.27.0 | | Exceptional (Emberforged) and elite (Hellforged) tiers of every weapon and armor base for Nightmare and Hell, new affix tiers past level 36, 26 new uniques, and Reforge at the forge to move an item up a tier, growing a unique's properties with it |
 | 0.26.3 | | Faster on phones: the floor is drawn once into a picture a little larger than the screen and stamped as one image, shifted as the camera moves and added to as ground is explored, instead of several hundred tiles a frame |
