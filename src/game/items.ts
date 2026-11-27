@@ -72,6 +72,12 @@ export interface BaseItem {
   /** Only spawns as magic or better (jewelry, circlets). */
   magicOnly?: boolean;
   value?: number;
+  /** 1 for an exceptional (Emberforged) base, 2 for an elite (Hellforged) one; absent on the normal tier. */
+  tier?: 1 | 2;
+  /** The normal-tier base this one is a finer version of. */
+  root?: string;
+  /** Level a hero needs to use this base at all. */
+  reqLvl?: number;
 }
 
 export interface Item {
@@ -212,6 +218,47 @@ export const BASES: BaseItem[] = [
   { id: 'tp_scroll', name: 'Scroll of Town Portal', kind: 'scroll', qlvl: 1, w: 1, h: 1, value: 100 },
 ];
 
+// ---------------------------------------------------------------- tiers
+
+/** Every weapon and armor base comes in three tiers: normal, exceptional and elite. */
+export const TIER_LABELS = ['Normal', 'Exceptional', 'Elite'] as const;
+/** The word in front of an exceptional or elite base's name. */
+export const TIER_NAMES = ['', 'Emberforged', 'Hellforged'] as const;
+export const TIER_COLORS = ['', '#e0a050', '#ff6a3a'] as const;
+/** Base damage and defense of each tier, against the normal one. */
+export const TIER_MULT = [1, 2, 3] as const;
+const TIER_REQ = [1, 1.35, 1.7];
+/** An exceptional base is found from about Nightmare's first areas, an elite one from late in Nightmare and all through Hell. */
+const TIER_QLVL = [0, 36, 54];
+const TIER_SUFFIX = ['', '_x', '_e'];
+const TIERED_KINDS: ItemKind[] = ['weapon', 'shield', 'armor', 'helm', 'gloves', 'boots', 'belt'];
+
+/** The level a hero needs for something of this quality level, past what the Normal campaign drops. */
+export function highLevelReq(qlvl: number): number {
+  return Math.min(60, Math.round(20 + qlvl * 0.5));
+}
+
+for (const b of BASES.filter((x) => TIERED_KINDS.includes(x.kind))) {
+  for (const t of [1, 2] as const) {
+    const k = TIER_MULT[t];
+    const qlvl = TIER_QLVL[t] + Math.round(b.qlvl * 0.7);
+    const nb: BaseItem = { ...b, id: b.id + TIER_SUFFIX[t], name: `${TIER_NAMES[t]} ${b.name}`, tier: t, root: b.id, qlvl, reqLvl: highLevelReq(qlvl) };
+    if (b.minDmg !== undefined) {
+      nb.minDmg = Math.round(b.minDmg * k);
+      nb.maxDmg = Math.round(b.maxDmg! * k);
+    }
+    if (b.defMin !== undefined) {
+      nb.defMin = Math.round(b.defMin * k);
+      nb.defMax = Math.round(b.defMax! * k);
+    }
+    if (b.reqStr) nb.reqStr = Math.round(b.reqStr * TIER_REQ[t]);
+    if (b.reqDex) nb.reqDex = Math.round(b.reqDex * TIER_REQ[t]);
+    if (b.maxSockets) nb.maxSockets = Math.min(6, b.w * b.h, b.maxSockets + 1);
+    if (b.potionCap) nb.potionCap = b.potionCap + 4 * t;
+    BASES.push(nb);
+  }
+}
+
 export type GemType = 'ruby' | 'sapphire' | 'topaz' | 'emerald' | 'amethyst' | 'diamond' | 'skull';
 export const GEM_TYPES: GemType[] = ['ruby', 'sapphire', 'topaz', 'emerald', 'amethyst', 'diamond', 'skull'];
 export const GEM_GRADES = ['Chipped', 'Flawed', '', 'Flawless', 'Perfect'];
@@ -236,6 +283,40 @@ export function baseOf(item: Item | string): BaseItem {
   const b = BASE_BY_ID[typeof item === 'string' ? item : item.base];
   if (!b) throw new Error(`unknown item base ${typeof item === 'string' ? item : item.base}`);
   return b;
+}
+
+/** 0 for normal, 1 for exceptional, 2 for elite. */
+export function tierOf(item: Item | string | BaseItem): number {
+  const b = typeof item === 'object' && 'kind' in item ? item : baseOf(item as Item | string);
+  return b.tier ?? 0;
+}
+
+/** The normal-tier base an item is built on: what it looks like, whatever its tier. */
+export function rootBase(item: Item | string | BaseItem): BaseItem {
+  const b = typeof item === 'object' && 'kind' in item ? item : baseOf(item as Item | string);
+  return b.root ? BASE_BY_ID[b.root] : b;
+}
+
+/** The same base in another tier, if it comes in tiers. */
+export function baseInTier(item: Item | string | BaseItem, tier: number): BaseItem | null {
+  const r = rootBase(item);
+  return BASE_BY_ID[r.id + (TIER_SUFFIX[tier] ?? '?')] ?? null;
+}
+
+/** Stats that are plain amounts and grow with an item's tier when the forge reforges it. */
+const FLAT_STATS = new Set<StatKey>([
+  'str', 'dex', 'vit', 'ene', 'allAttr', 'life', 'mana', 'minDmg', 'maxDmg', 'ar', 'def',
+  'fireMin', 'fireMax', 'coldMin', 'coldMax', 'lightMin', 'lightMax', 'poisonDmg', 'thorns', 'lifeRegen', 'dmgReduce', 'lifeOnKill', 'manaOnKill',
+]);
+/** Percentages that rise by a step for each tier. Everything else (resistances, speeds, skills, steal, magic find) stays as it is. */
+const PCT_STEP: Partial<Record<StatKey, number>> = { edPct: 50, defPct: 40 };
+
+/** What a unique or set property becomes when its item moves from one tier to another. */
+export function scaleModValue(stat: StatKey, value: number, from: number, to: number): number {
+  if (from === to) return value;
+  if (FLAT_STATS.has(stat)) return Math.max(1, Math.round((value * TIER_MULT[to]) / TIER_MULT[from]));
+  const step = PCT_STEP[stat];
+  return step ? value + step * (to - from) : value;
 }
 
 type GemHost = 'weapon' | 'armor' | 'shield';
@@ -390,6 +471,62 @@ export const AFFIXES: Affix[] = [
   S('of_siphoning', 'of Siphoning', 3, ['weapon', 'jewelry', 'caster'], 'manaOnKill', [m('manaOnKill', 1, 3)]),
   S('of_maiming', 'of Maiming', 3, ['weapon', 'gloves', 'ring'], 'maxDmg', [m('maxDmg', 1, 4)]),
   S('of_carnage', 'of Carnage', 12, ['weapon'], 'maxDmg', [m('maxDmg', 5, 10)]),
+
+  // Past the Normal campaign: these only roll on items found in Nightmare, Hell and deep in the Underforge.
+  P('resplendent', 'Resplendent', 40, DEF_KINDS, 'defPct', [m('defPct', 81, 110)]),
+  P('hallowed', 'Hallowed', 60, DEF_KINDS, 'defPct', [m('defPct', 111, 150)]),
+  P('merciless', 'Merciless', 38, ['weapon'], 'edPct', [m('edPct', 121, 170)]),
+  P('ruinous', 'Ruinous', 60, ['weapon'], 'edPct', [m('edPct', 171, 230)]),
+  P('platinum', 'Platinum', 36, ['weapon', 'jewelry'], 'ar', [m('ar', 121, 180)]),
+  P('celestial', 'Celestial', 56, ['weapon', 'jewelry'], 'ar', [m('ar', 181, 260)]),
+  P('vermilion', 'Vermilion', 36, ['defensive', 'jewelry'], 'fireRes', [m('fireRes', 26, 35)]),
+  P('infernal', 'Infernal', 56, ['defensive', 'jewelry'], 'fireRes', [m('fireRes', 36, 45)]),
+  P('glacial', 'Glacial', 36, ['defensive', 'jewelry'], 'coldRes', [m('coldRes', 26, 35)]),
+  P('boreal', 'Boreal', 56, ['defensive', 'jewelry'], 'coldRes', [m('coldRes', 36, 45)]),
+  P('galvanic', 'Galvanic', 36, ['defensive', 'jewelry'], 'lightRes', [m('lightRes', 26, 35)]),
+  P('fulgurant', 'Fulgurant', 56, ['defensive', 'jewelry'], 'lightRes', [m('lightRes', 36, 45)]),
+  P('jade', 'Jade', 36, ['defensive', 'jewelry'], 'poisonRes', [m('poisonRes', 26, 35)]),
+  P('serpentine', 'Serpentine', 56, ['defensive', 'jewelry'], 'poisonRes', [m('poisonRes', 36, 45)]),
+  P('chromatic', 'Chromatic', 40, ['defensive', 'jewelry'], 'allRes', [m('allRes', 16, 25)], 4),
+  P('auroral', 'Auroral', 62, ['defensive', 'jewelry'], 'allRes', [m('allRes', 26, 35)], 3),
+  P('searing', 'Searing', 36, ['weapon'], 'fire', [m('fireMin', 9, 15), m('fireMax', 19, 32)]),
+  P('immolating', 'Immolating', 56, ['weapon'], 'fire', [m('fireMin', 16, 26), m('fireMax', 33, 55)]),
+  P('frigid', 'Frigid', 36, ['weapon'], 'cold', [m('coldMin', 7, 12), m('coldMax', 15, 25)]),
+  P('hoarfrost', 'Hoarfrost', 56, ['weapon'], 'cold', [m('coldMin', 13, 20), m('coldMax', 26, 42)]),
+  P('fulminating', 'Fulminating', 36, ['weapon'], 'light', [m('lightMin', 4, 5), m('lightMax', 36, 60)]),
+  P('thunderclap', 'Thunderclap', 56, ['weapon'], 'light', [m('lightMin', 6, 8), m('lightMax', 61, 95)]),
+  P('toxic', 'Toxic', 36, ['weapon'], 'poison', [m('poisonDmg', 24, 40)]),
+  P('pestilent', 'Pestilent', 56, ['weapon'], 'poison', [m('poisonDmg', 41, 70)]),
+  P('warlords', "Warlord's", 45, ['melee', 'amulet', 'helm'], 'skills', [m('skills_reaver', 2, 2)], 2),
+  P('archmages', "Archmage's", 45, ['caster', 'amulet', 'helm'], 'skills', [m('skills_arcanist', 2, 2)], 2),
+  P('pathfinders', "Pathfinder's", 45, ['bow', 'amulet', 'gloves'], 'skills', [m('skills_huntress', 2, 2)], 2),
+  P('lichs', "Lich's", 45, ['caster', 'amulet', 'helm'], 'skills', [m('skills_necromancer', 2, 2)], 2),
+  P('master_smiths', "Master Smith's", 45, ['melee', 'amulet', 'gloves'], 'skills', [m('skills_forgewright', 2, 2)], 2),
+  P('broodmothers', "Broodmother's", 45, ['melee', 'bow', 'amulet', 'helm'], 'skills', [m('skills_hiveborn', 2, 2)], 2),
+  P('serendipitous', 'Serendipitous', 36, ['jewelry', 'boots', 'gloves', 'helm'], 'mf', [m('mf', 26, 40)]),
+  P('cerulean', 'Cerulean', 36, ['jewelry', 'helm', 'caster'], 'mana', [m('mana', 31, 50)]),
+  S('of_the_colossus', 'of the Colossus', 36, ['weapon', 'jewelry', 'gloves', 'belt'], 'str', [m('str', 13, 20)]),
+  S('of_the_giant', 'of the Giant', 56, ['weapon', 'jewelry', 'gloves', 'belt'], 'str', [m('str', 21, 30)]),
+  S('of_the_wind', 'of the Wind', 36, ['weapon', 'jewelry', 'gloves', 'boots'], 'dex', [m('dex', 13, 20)]),
+  S('of_the_phantom', 'of the Phantom', 56, ['weapon', 'jewelry', 'gloves', 'boots'], 'dex', [m('dex', 21, 30)]),
+  S('of_the_mountain', 'of the Mountain', 36, ['jewelry', 'armor', 'belt', 'shield'], 'vit', [m('vit', 13, 20)]),
+  S('of_the_ages', 'of the Ages', 56, ['jewelry', 'armor', 'belt', 'shield'], 'vit', [m('vit', 21, 30)]),
+  S('of_wisdom', 'of Wisdom', 36, ['jewelry', 'caster'], 'ene', [m('ene', 13, 20)]),
+  S('of_genius', 'of Genius', 56, ['jewelry', 'caster'], 'ene', [m('ene', 21, 30)]),
+  S('of_the_mammoth', 'of the Mammoth', 36, ['amulet', 'armor', 'shield', 'belt'], 'life', [m('life', 41, 60)]),
+  S('of_the_leviathan', 'of the Leviathan', 56, ['amulet', 'armor', 'shield', 'belt'], 'life', [m('life', 61, 90)]),
+  S('of_the_oracle', 'of the Oracle', 36, ['jewelry', 'helm', 'caster'], 'manaMax', [m('mana', 26, 45)]),
+  S('of_hunger', 'of Hunger', 40, ['weapon', 'ring', 'amulet'], 'lifeSteal', [m('lifeSteal', 9, 11)]),
+  S('of_fervor', 'of Fervor', 38, ['weapon', 'gloves'], 'ias', [m('ias', 30, 30)]),
+  S('of_the_gale', 'of the Gale', 40, ['boots'], 'frw', [m('frw', 40, 40)]),
+  S('of_wizardry', 'of Wizardry', 40, ['amulet', 'caster'], 'fcr', [m('fcr', 30, 30)]),
+  S('of_brambles', 'of Brambles', 36, ['armor', 'shield'], 'thorns', [m('thorns', 11, 25)]),
+  S('of_renewal', 'of Renewal', 36, ['jewelry', 'armor', 'helm', 'belt'], 'lifeRegen', [m('lifeRegen', 6, 9)]),
+  S('of_the_citadel', 'of the Citadel', 40, ['armor', 'shield', 'helm', 'belt'], 'dmgReduce', [m('dmgReduce', 4, 8)]),
+  S('of_slaughter', 'of Slaughter', 36, ['weapon'], 'maxDmg', [m('maxDmg', 11, 20)]),
+  S('of_doom', 'of Doom', 45, ['weapon'], 'crit', [m('crit', 13, 20)]),
+  S('of_feasting', 'of Feasting', 36, ['weapon', 'jewelry', 'gloves'], 'lifeOnKill', [m('lifeOnKill', 5, 10)]),
+  S('of_the_bastion', 'of the Bastion', 36, ['shield'], 'block', [m('block', 11, 15)]),
 ];
 
 export function affixFits(a: Affix, b: BaseItem): boolean {
@@ -470,8 +607,41 @@ export const UNIQUES: UniqueDef[] = [
   U('free_queens_fang', "The Free Queen's Fang", 'jambiya', 19, [m('skills_hiveborn', 2, 2), m('edPct', 110, 150), m('ias', 20, 20), m('poisonDmg', 30, 30), m('dex', 12, 12)]),
   U('skywatcher', 'Skywatcher', 'long_bow', 10, [m('skills_hiveborn', 2, 2), m('edPct', 80, 110), m('crit', 12, 12), m('ar', 60, 60)]),
   U('crown_of_ash', 'Crown of Ash', 'full_helm', 18, [m('defPct', 100, 130), m('allSkills', 1, 1), m('life', 30, 30), m('fireRes', 30, 30), m('lifeSteal', 4, 4)]),
+  // Exceptional (Emberforged) uniques, found from Nightmare on.
+  U('cinderbrand', 'Cinderbrand', 'broad_sword_x', 48, [m('skills_reaver', 2, 2), m('edPct', 170, 210), m('fireMin', 15, 15), m('fireMax', 40, 40), m('lifeSteal', 8, 8), m('str', 18, 18)]),
+  U('ashwhisper', 'Ashwhisper', 'battle_staff_x', 48, [m('skills_arcanist', 3, 3), m('fcr', 30, 30), m('mana', 90, 90), m('allRes', 20, 20), m('ene', 20, 20)]),
+  U('gloamstring', 'Gloamstring', 'battle_bow_x', 48, [m('skills_huntress', 2, 2), m('edPct', 160, 200), m('ias', 20, 20), m('crit', 15, 15), m('dex', 20, 20)]),
+  U('ossuary_key', 'The Ossuary Key', 'bone_wand_x', 44, [m('skills_necromancer', 3, 3), m('fcr', 25, 25), m('mana', 60, 60), m('poisonRes', 40, 40), m('life', 40, 40)]),
+  U('brandfather', 'Brandfather', 'great_maul_x', 48, [m('skills_forgewright', 2, 2), m('edPct', 180, 220), m('fireMin', 15, 15), m('fireMax', 45, 45), m('str', 20, 20), m('crit', 10, 10)]),
+  U('broodsting', "The Broodmother's Sting", 'jambiya_x', 50, [m('skills_hiveborn', 2, 2), m('edPct', 150, 190), m('poisonDmg', 70, 70), m('ias', 25, 25), m('clawPct', 40, 40)]),
+  U('pyreward', 'Pyreward Hauberk', 'chain_mail_x', 48, [m('defPct', 150, 190), m('life', 70, 70), m('fireRes', 45, 45), m('dmgReduce', 8, 8), m('thorns', 30, 30)]),
+  U('ashen_saint', 'Visage of the Ashen Saint', 'full_helm_x', 48, [m('allSkills', 1, 1), m('defPct', 130, 170), m('life', 50, 50), m('allRes', 20, 20), m('mf', 30, 30)]),
+  U('unbending_gate', 'The Unbending Gate', 'tower_shield_x', 48, [m('defPct', 160, 200), m('block', 20, 20), m('allRes', 30, 30), m('life', 60, 60)]),
+  U('embergrasp', 'Embergrasp', 'chain_gloves_x', 45, [m('ias', 25, 25), m('str', 15, 15), m('lifeSteal', 5, 5), m('fireMin', 6, 6), m('fireMax', 18, 18), m('ar', 150, 150)]),
+  U('ashwalkers', 'Ashwalkers', 'chain_boots_x', 45, [m('frw', 40, 40), m('allRes', 20, 20), m('dex', 15, 15), m('life', 50, 50)]),
+  U('long_night', 'Girdle of the Long Night', 'heavy_belt_x', 48, [m('life', 80, 80), m('vit', 20, 20), m('dmgReduce', 6, 6), m('coldRes', 40, 40)]),
+  U('quiet_choir', 'Shroud of the Quiet Choir', 'studded_leather_x', 43, [m('allSkills', 1, 1), m('defPct', 120, 160), m('fcr', 20, 20), m('mana', 70, 70), m('allRes', 15, 15)]),
+  // Elite (Hellforged) uniques, found late in Nightmare and through Hell.
+  U('doomsayer', 'Doomsayer', 'scimitar_e', 68, [m('skills_reaver', 3, 3), m('edPct', 230, 280), m('lifeSteal', 9, 9), m('crit', 20, 20), m('allRes', 25, 25), m('str', 25, 25)]),
+  U('last_equinox', 'The Last Equinox', 'gnarled_staff_e', 60, [m('skills_arcanist', 4, 4), m('fcr', 40, 40), m('mana', 140, 140), m('allRes', 25, 25)]),
+  U('hollowmoon', 'Hollowmoon', 'recurve_bow_e', 70, [m('skills_huntress', 3, 3), m('edPct', 220, 270), m('ias', 25, 25), m('crit', 20, 20), m('coldMin', 20, 20), m('coldMax', 45, 45)]),
+  U('requiem_unsung', 'Requiem Unsung', 'glass_wand_e', 69, [m('skills_necromancer', 4, 4), m('fcr', 35, 35), m('mana', 120, 120), m('life', 70, 70), m('allRes', 20, 20)]),
+  U('heart_of_the_forge', 'Heart of the Hellforge', 'obsidian_maul_e', 71, [m('skills_forgewright', 3, 3), m('edPct', 240, 290), m('fireMin', 30, 30), m('fireMax', 80, 80), m('str', 30, 30), m('fireRes', 40, 40)]),
+  U('swarmcrown', 'Swarmcrown Cleaver', 'crescent_axe_e', 70, [m('skills_hiveborn', 3, 3), m('edPct', 220, 270), m('clawPct', 60, 60), m('offhandPct', 40, 40), m('ias', 20, 20)]),
+  U('unlit_star', 'Mantle of the Unlit Star', 'plate_mail_e', 70, [m('allSkills', 1, 1), m('defPct', 180, 230), m('life', 120, 120), m('allRes', 30, 30), m('dmgReduce', 12, 12)]),
+  U('embers_undying', 'Crown of Embers Undying', 'great_helm_e', 71, [m('allSkills', 2, 2), m('defPct', 160, 200), m('life', 80, 80), m('lifeSteal', 5, 5), m('fireRes', 50, 50)]),
+  U('last_bastion', 'The Last Bastion', 'kite_shield_e', 64, [m('defPct', 190, 240), m('block', 25, 25), m('allRes', 40, 40), m('life', 90, 90), m('thorns', 60, 60)]),
+  U('founders_fists', 'Fists of the Founder', 'gauntlets_e', 71, [m('ias', 30, 30), m('str', 25, 25), m('lifeSteal', 7, 7), m('crit', 15, 15), m('ar', 300, 300)]),
+  U('seventh_bell', 'Stride of the Seventh Bell', 'greaves_e', 71, [m('frw', 45, 45), m('allRes', 30, 30), m('life', 80, 80), m('lifeRegen', 10, 10)]),
+  U('abyss_cinch', 'Cinch of the Abyss', 'plated_belt_e', 69, [m('life', 120, 120), m('str', 25, 25), m('vit', 25, 25), m('dmgReduce', 10, 10), m('allRes', 20, 20)]),
+  U('hollow_star', 'Diadem of the Hollow Star', 'circlet_e', 63, [m('allSkills', 2, 2), m('fcr', 25, 25), m('mana', 100, 100), m('allRes', 25, 25)]),
 ];
 export const UNIQUE_BY_ID: Record<string, UniqueDef> = Object.fromEntries(UNIQUES.map((u) => [u.id, u]));
+
+/** Uniques that can come out of an item of this level: deep enough drops leave the humblest ones behind. */
+export function uniquesAt(ilvl: number): UniqueDef[] {
+  return UNIQUES.filter((u) => u.qlvl <= ilvl && u.qlvl >= ilvl - 45);
+}
 
 export interface SetDef {
   id: string;
@@ -768,7 +938,7 @@ const CLASS_WEAPONS: Record<ClassId, WeaponCat[]> = {
 
 export function makeItem(baseId: string, ilvl = 1, rarity: Rarity = 'normal'): Item {
   const b = baseOf(baseId);
-  const item: Item = { uid: nextUid(), base: baseId, rarity, ilvl, identified: true, mods: [], sockets: 0, gems: [], reqLvl: 1 };
+  const item: Item = { uid: nextUid(), base: baseId, rarity, ilvl, identified: true, mods: [], sockets: 0, gems: [], reqLvl: b.reqLvl ?? 1 };
   if (b.defMin !== undefined) item.def = b.defMin;
   return item;
 }
@@ -811,6 +981,7 @@ const RARE_B: Partial<Record<ItemKind | 'bow', string[]>> = {
 function finalize(item: Item, rng: Rng) {
   const b = baseOf(item);
   if (b.defMin !== undefined) item.def = rng.int(b.defMin, b.defMax!);
+  if (b.reqLvl) item.reqLvl = Math.max(item.reqLvl, b.reqLvl);
 }
 
 export function pickBase(rng: Rng, ilvl: number, classId?: ClassId, kinds = EQUIP_KINDS): BaseItem {
@@ -856,7 +1027,7 @@ export function generateItem(rng: Rng, ilvl: number, opts: GenOpts = {}): Item {
   let rarity = opts.rarity ?? rollRarity(rng, { mf: opts.mf ?? 0, bonus: opts.bonus ?? 1 });
   if (rarity === 'unique') {
     const kindOk = (base: string) => !opts.kinds || opts.kinds.includes(baseOf(base).kind);
-    const pool = UNIQUES.filter((u) => u.qlvl <= ilvl && (u.base === b.id || !opts.base) && kindOk(u.base));
+    const pool = uniquesAt(ilvl).filter((u) => (u.base === b.id || !opts.base) && kindOk(u.base));
     const exact = pool.filter((u) => u.base === b.id);
     const u = exact.length && rng.chance(0.6) ? rng.pick(exact) : pool.length ? rng.pick(pool) : null;
     if (u) {
@@ -864,7 +1035,7 @@ export function generateItem(rng: Rng, ilvl: number, opts: GenOpts = {}): Item {
       item.uniqueId = u.id;
       item.name = u.name;
       item.mods = u.mods.map((md) => ({ stat: md.stat, value: rng.int(md.min, md.max) }));
-      item.reqLvl = Math.max(1, Math.floor(u.qlvl * 0.9));
+      item.reqLvl = Math.max(1, u.qlvl > 35 ? highLevelReq(u.qlvl) : Math.floor(u.qlvl * 0.9));
       item.identified = false;
       finalize(item, rng);
       return item;

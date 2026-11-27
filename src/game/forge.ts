@@ -1,7 +1,7 @@
 import { addToInventory, ESSENCE_TYPES, removeFromGrid, type Character, type EssenceType } from './character';
 import {
-  AFFIXES, affixFits, baseOf, describeMods, displayName, forgeLevel, generateItem, isEquipment, MAX_FORGE_LEVEL, SET_PIECES,
-  UNIQUE_BY_ID, UNIQUES,
+  AFFIXES, affixFits, baseInTier, baseOf, describeMods, displayName, forgeLevel, generateItem, isEquipment, MAX_FORGE_LEVEL, scaleModValue,
+  SET_PIECES, TIER_LABELS, TIER_MULT, TIER_NAMES, tierOf, UNIQUE_BY_ID, uniquesAt,
   type Affix, type Item, type ItemKind, type Mod, type Rarity, type Slot, type StatKey,
 } from './items';
 import type { Rng } from './rng';
@@ -41,12 +41,15 @@ export const MASTERY_RANKS: MasteryRank[] = [
   { name: 'Apprentice', xp: 20, unlock: 'Socket punching' },
   { name: 'Journeyman', xp: 60, unlock: 'Ember-Seal' },
   { name: 'Artisan', xp: 150, unlock: 'Smelting rare items into legends' },
-  { name: 'Master', xp: 320 },
-  { name: 'Grandmaster', xp: 600 },
+  { name: 'Master', xp: 320, unlock: 'Reforging gear into Emberforged (exceptional) bases' },
+  { name: 'Grandmaster', xp: 600, unlock: 'Reforging gear into Hellforged (elite) bases' },
 ];
 
 /** The mastery rank a recipe needs. */
-export const RECIPE_RANK = { punch: 1, seal: 2, legend: 3 } as const;
+export const RECIPE_RANK = { punch: 1, seal: 2, legend: 3, reforge: 4, reforgeElite: 5 } as const;
+
+/** What reforging into each tier costs: gold, Cinders, and Essence of every element. */
+const REFORGE_COST: [number, number, number][] = [[0, 0, 0], [25000, 120, 2], [80000, 300, 5]];
 
 export function forgeRank(c: Character): number {
   let r = 0;
@@ -217,9 +220,12 @@ function renameMagic(item: Item, known = new Map<number, Affix>()) {
 
 /** The fixed ranges a unique or set piece rolls its properties from. */
 function legendRanges(item: Item): { stat: StatKey; min: number; max: number }[] | null {
-  if (item.rarity === 'unique') return (item.uniqueId && UNIQUE_BY_ID[item.uniqueId]?.mods) || null;
-  if (item.rarity === 'set') return SET_PIECES.find((p) => p.id === item.uniqueId)?.mods ?? null;
-  return null;
+  const def = item.rarity === 'unique' ? item.uniqueId && UNIQUE_BY_ID[item.uniqueId] : item.rarity === 'set' ? SET_PIECES.find((p) => p.id === item.uniqueId) : null;
+  if (!def) return null;
+  // A reforged legend keeps its properties, grown to its new tier.
+  const from = tierOf(def.base);
+  const to = tierOf(item);
+  return def.mods.map((r) => ({ stat: r.stat, min: scaleModValue(r.stat, r.min, from, to), max: scaleModValue(r.stat, r.max, from, to) }));
 }
 
 // ---------------------------------------------------------------- heat
@@ -318,7 +324,7 @@ const SMELT_COST: Partial<Record<Rarity, [number, number]>> = { normal: [0, 6], 
 
 /** Which legend three rares of this kind can become at this item level: a unique if one exists, else a set piece. */
 function legendRarity(kind: ItemKind, ilvl: number): Rarity | null {
-  if (UNIQUES.some((u) => u.qlvl <= ilvl && baseOf(u.base).kind === kind)) return 'unique';
+  if (uniquesAt(ilvl).some((u) => baseOf(u.base).kind === kind)) return 'unique';
   if (SET_PIECES.some((p) => p.qlvl <= ilvl && baseOf(p.base).kind === kind)) return 'set';
   return null;
 }
@@ -336,7 +342,9 @@ export type ForgeAction =
   | { type: 'quench'; uid: number; element: EssenceType }
   | { type: 'seal'; uid: number; affix: number }
   | { type: 'punch'; uid: number }
-  | { type: 'smelt'; uids: number[] };
+  | { type: 'smelt'; uids: number[] }
+  /** Rebuilds the item on the next tier's base. */
+  | { type: 'reforge'; uid: number };
 
 export type ForgeActionType = ForgeAction['type'];
 
@@ -479,6 +487,24 @@ export function forgePreview(c: Character, a: ForgeAction): ForgePreview {
       if (it.sockets >= max) return fail('No room for another socket', cost);
       return { cost, error: cantAfford(c, cost) };
     }
+    case 'reforge': {
+      const at = workable(c, a.uid);
+      if (typeof at === 'string') return fail(at);
+      const it = at.item;
+      const t = tierOf(it) + 1;
+      const next = baseInTier(it, t);
+      if (!next) return fail(tierOf(it) >= 2 ? 'Already Hellforged: no fire burns hotter' : 'Only weapons and armor can be reforged');
+      const [g, cin, ess] = REFORGE_COST[t];
+      const k = it.rarity === 'unique' || it.rarity === 'set' ? 1.5 : 1;
+      const cost = scaled(c, g * k, cin * k, { fire: ess, cold: ess, light: ess, poison: ess });
+      const lock = needRank(t === 1 ? RECIPE_RANK.reforge : RECIPE_RANK.reforgeElite);
+      if (lock) return fail(lock, cost);
+      if (c.maxDifficulty < t) return fail(`Only a hero who has reached ${t === 1 ? 'Nightmare' : 'Hell'} knows that fire`, cost);
+      if (at.slot) return fail('Take it off first', cost);
+      const note = `Becomes ${TIER_NAMES[t]} (${TIER_LABELS[t].toLowerCase()}): ${next.minDmg !== undefined ? 'base damage' : 'defense'} x${TIER_MULT[t] / TIER_MULT[t - 1]}`
+        + (it.rarity === 'unique' || it.rarity === 'set' ? ', and its properties grow with it' : '') + `, needs level ${Math.max(it.reqLvl, next.reqLvl ?? 1)}`;
+      return { cost, error: cantAfford(c, cost), note };
+    }
     case 'smelt': {
       const items = a.uids.map((uid) => c.inventory.find((e) => e.item.uid === uid)?.item);
       if (a.uids.length !== 3 || new Set(a.uids).size !== 3 || items.some((x) => !x)) return fail('Put three items from your backpack in the crucible');
@@ -516,6 +542,7 @@ const SAY = {
     legend: ['Three into one. I did not think it would take.'],
     temper: ['A cleaner line than the last. Keep that one.'],
     seal: ['Sealed. Nothing I own will shift it now.'],
+    reforge: ['I have never seen metal take that much heat and live.', 'Same shape. Different beast.'],
     rank: ['You are getting the feel of it.'],
   },
   ember: {
@@ -526,6 +553,7 @@ const SAY = {
     legend: ['Three made one. That is all the star ever wanted, too.'],
     temper: ['A fine line. Whoever taught you patience, thank them.'],
     seal: ['Sealed. My fire will keep it, as it once kept worse.'],
+    reforge: ['This is the heat I was made in. Now it is yours.', 'It remembers what it was. It will not go back.'],
     rank: ['You learn quickly. I had four hundred years and learned one thing.'],
   },
 } as const;
@@ -672,6 +700,24 @@ export function forgeApply(c: Character, rng: Rng, a: ForgeAction): ForgeResult 
       pay(c, pre.cost);
       xp = 5;
       res = { ok: true, type: a.type, item, tone: 'good', text: `Punched a socket: ${displayName(item)}` };
+      break;
+    }
+    case 'reforge': {
+      const item = locate(c, a.uid)!.item;
+      const from = tierOf(item);
+      const to = from + 1;
+      const next = baseInTier(item, to)!;
+      const before = displayName(item);
+      item.base = next.id;
+      if (item.def !== undefined) item.def = Math.round((item.def * TIER_MULT[to]) / TIER_MULT[from]);
+      // Uniques and set pieces grow into the new metal; the affixes of magic and rare items stay as they rolled.
+      if (item.rarity === 'unique' || item.rarity === 'set') for (const md of item.mods) if (!md.quenched) md.value = scaleModValue(md.stat, md.value, from, to);
+      item.ilvl = Math.max(item.ilvl, next.qlvl);
+      item.reqLvl = Math.max(item.reqLvl, next.reqLvl ?? 1);
+      renameMagic(item);
+      pay(c, pre.cost);
+      xp = 20 * to;
+      res = { ok: true, type: a.type, item, tone: 'great', text: `Reforged ${before}: now ${next.name}`, say: say(c, rng, 'reforge') };
       break;
     }
     case 'smelt': {
