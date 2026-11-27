@@ -115,6 +115,8 @@ Act 1 has imps that flee when a packmate dies and Hexers that raise them again, 
 | Set | Green |
 | Unique | Gold |
 
+Every weapon and armor base comes in three tiers. Normal bases drop through the Normal campaign. Emberforged (exceptional) bases, with twice the base damage or defense, drop from Nightmare on. Hellforged (elite) bases, with three times, drop late in Nightmare and through Hell. The finer tiers need more Strength, Dexterity and level, and have their own affixes and uniques: one weapon unique per class in each tier, and one for each kind of armor.
+
 Magic and better items drop unidentified; the sage identifies them for free. Gems in seven types and five grades go into sockets, with different effects in weapons, armor and shields. Your inventory is a grid where items take up space by size. Magic find improves your odds.
 
 ### The Forge
@@ -129,8 +131,9 @@ A forge stands beside the blacksmith in every town.
 | **Quench** | Adds or converts an elemental damage or resistance affix |
 | **Ember-Seal** | Locks an affix against tempering |
 | **Smelt** | Turns three items of one type and rarity into one of the next |
+| **Reforge** | Rebuilds an item on its Emberforged base, then its Hellforged one, once the hero has reached Nightmare (or Hell) and has Master (or Grandmaster) mastery. A unique or set piece grows with it: plain amounts such as Strength or Life double at Emberforged and triple at Hellforged, and enhanced damage and defense rise by 50% and 40% a tier; resistances, speeds, skills and steal stay as they were. Magic and rare items keep their affixes |
 
-Forge mastery grows with use, improves costs and odds, and teaches socket punching, sealing and smelting legends. Vhorza's ember, once you carry it, makes the forge burn hotter.
+Forge mastery grows with use, improves costs and odds, and teaches socket punching, sealing, smelting legends and reforging. Vhorza's ember, once you carry it, makes the forge burn hotter.
 
 ### Other features
 
@@ -161,6 +164,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.27.0 | | Exceptional (Emberforged) and elite (Hellforged) tiers of every weapon and armor base for Nightmare and Hell, new affix tiers past level 36, 26 new uniques, and Reforge at the forge to move an item up a tier, growing a unique's properties with it |
 | 0.26.3 | | Faster on phones: the floor is drawn once into a picture a little larger than the screen and stamped as one image, shifted as the camera moves and added to as ground is explored, instead of several hundred tiles a frame |
 | 0.26.2 | | Smoother fights on phones: hit flashes, chill, poison and Heat glows are drawn in shifted colours in one pass instead of through a second canvas (about 5× cheaper each); the resolution steps down when frames arrive late, not only when the game's own script runs long |
 | 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |

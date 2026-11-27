@@ -1,4 +1,4 @@
-import { baseOf, type BaseItem, type Item } from '../game/items';
+import { baseOf, rootBase, TIER_COLORS, type BaseItem, type Item } from '../game/items';
 import { SKILL_BY_ID } from '../game/skills';
 
 const CELL = 28;
@@ -368,8 +368,28 @@ export function baseIconCanvas(baseId: string): HTMLCanvasElement {
   c.width = b.w * CELL * 2;
   c.height = b.h * CELL * 2;
   const ctx = c.getContext('2d')!;
-  ctx.scale(2, 2);
-  paint(ctx, b, b.w, b.h);
+  if (b.tier) {
+    // An exceptional or elite base looks like its normal self, washed in its tier's colour and ringed with its glow.
+    // Drawn once and cached, like every icon.
+    const plain = baseIconCanvas(rootBase(b).id);
+    const tint = document.createElement('canvas');
+    tint.width = c.width;
+    tint.height = c.height;
+    const tc = tint.getContext('2d')!;
+    tc.drawImage(plain, 0, 0);
+    tc.globalCompositeOperation = 'source-atop';
+    tc.fillStyle = TIER_COLORS[b.tier];
+    tc.globalAlpha = b.tier === 2 ? 0.32 : 0.24;
+    tc.fillRect(0, 0, tint.width, tint.height);
+    ctx.shadowColor = TIER_COLORS[b.tier];
+    ctx.shadowBlur = b.tier === 2 ? 10 : 6;
+    ctx.drawImage(tint, 0, 0);
+    ctx.shadowBlur = 0;
+    ctx.drawImage(tint, 0, 0);
+  } else {
+    ctx.scale(2, 2);
+    paint(ctx, b, b.w, b.h);
+  }
   canvasCache.set(baseId, c);
   return c;
 }

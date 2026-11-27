@@ -1206,7 +1206,8 @@ export class World {
   restockVendors() {
     const clvl = this.char.level;
     const rng = this.rng;
-    const ilvl = Math.max(1, Math.min(clvl + 2, this.mlvl(AREA_BY_ID.hellforge_heart) + 3));
+    // Shops keep to the difficulty: Emberforged stock from Nightmare, Hellforged only in Hell.
+    const ilvl = Math.max(1, Math.min(clvl + 2, this.mlvl(AREA_BY_ID.hellforge_heart) + 3, [35, 54, 99][this.char.difficulty] ?? 99));
     const healer: Item[] = [];
     for (const t of ['hp', 'mp'] as const) {
       const top = potionFor(t, clvl);

@@ -204,6 +204,17 @@ export function forgeActions(host: PanelHost, sel: Selection): ForgeUiAction[] {
     add('Ember-Seal', 'L', { cost: p.cost, error: locked }, setMode('seal'), { sub: locked ? undefined : `Lock one affix against tempering · ${costText(p.cost)}` });
   }
   if (b.maxSockets) add('Punch a socket', 'P', forgePreview(c, { type: 'punch', uid }), () => run(host, { type: 'punch', uid }));
+  if (b.kind !== 'ring' && b.kind !== 'amulet') {
+    const p = forgePreview(c, { type: 'reforge', uid });
+    // Hidden until the hero could ever use it, so it doesn't clutter the forge in Normal.
+    if (c.maxDifficulty > 0) {
+      const armed = ui.confirm === `reforge:${uid}`;
+      add(armed ? 'Reforge it? This cannot be undone' : 'Reforge', 'R', p, () => {
+        if (!confirmed(host, `reforge:${uid}`)) return;
+        run(host, { type: 'reforge', uid });
+      }, { cls: armed ? 'danger' : undefined, sub: p.error ? undefined : `${p.note} · ${costText(p.cost)}` });
+    }
+  }
   if (found.where === 'inventory') {
     const inCru = ui.crucible.includes(uid);
     add(inCru ? 'Take out of crucible' : 'Add to crucible', 'M', { cost: { gold: 0, cinders: 0, essences: {} }, error: !inCru && ui.crucible.length >= 3 ? 'The crucible holds three items' : null }, () => {

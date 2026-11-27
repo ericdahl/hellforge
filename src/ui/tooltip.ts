@@ -1,7 +1,7 @@
 import { computeStats, equippedItems, requirementError, type Character, fourArmed } from '../game/character';
 import {
   baseOf, describeMods, displayName, FORGE_STEP, forgeLevel, gemMods, itemColor, itemDefense, modTotal, SET_BY_ID, weaponBaseDamage,
-  isTreeStat, treeOf, type Item, type Mod,
+  isTreeStat, TIER_COLORS, TIER_LABELS, treeOf, type Item, type Mod,
 } from '../game/items';
 import { branchInfo } from '../game/skilltree';
 import { esc } from './dom';
@@ -15,6 +15,7 @@ export function itemTooltip(item: Item, c: Character, extra?: string): string {
   lines.push(`<div class="tt-name${fl >= 7 ? ' forge-hot' : ''}" style="color:${col}">${esc(displayName(item))}</div>`);
   if (item.identified && (item.rarity === 'unique' || item.rarity === 'set' || item.rarity === 'rare'))
     lines.push(`<div style="color:${col}">${esc(b.name)}</div>`);
+  if (b.tier) lines.push(`<div class="tt-tier" style="color:${TIER_COLORS[b.tier]}">${TIER_LABELS[b.tier]}</div>`);
   if (b.kind === 'weapon') {
     const ed = item.identified ? modTotal(item, 'edPct') : 0;
     const wd = weaponBaseDamage(item);
