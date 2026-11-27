@@ -20,7 +20,7 @@ export function clock(seconds: number): string {
   return s >= 3600 ? `${Math.floor(s / 3600)}:${mm.padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
 }
 
-/** One line to paste anywhere: "Hellforge Daily · Nov 18 · Huntress lvl 52 · Hell · Floor 14 · 22:41 · 3 deaths". */
+/** One line to paste anywhere: "Hellforge Daily · Nov 18 · Hunter lvl 52 · Hell · Floor 14 · 22:41 · 3 deaths". */
 export function dailyText(c: Character, r: DailyResult): string {
   return [
     'Hellforge Daily',

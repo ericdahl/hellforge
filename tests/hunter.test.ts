@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { createCharacter, migrateCharacter, SAVE_VERSION, type Character } from '../src/game/character';
 import { addPoison, arcaneResists, POISON_TIME } from '../src/game/combat';
-import { SETS } from '../src/game/items';
+import { describeMods, makeItem, SETS, type Item } from '../src/game/items';
 import { classSkills, SKILL_BY_ID } from '../src/game/skills';
 import { SKILL_TREES } from '../src/game/skilltree';
 import { elemDamage, type Monster, type World } from '../src/game/world';
 import { makeWorld, run } from './helpers';
 
-/** A level-30 Huntress in open ground with one monster `dist` tiles east that cannot move or die. */
+/** A level-30 Hunter in open ground with one monster `dist` tiles east that cannot move or die. */
 function arena(skills: Record<string, number> = {}, defId = 'ghoul', dist = 4) {
-  const w = makeWorld('huntress');
+  const w = makeWorld('hunter');
   const c = w.char;
   c.level = 30;
   c.alloc.dex = 80;
@@ -54,23 +54,23 @@ function shoot(w: World, m: Monster, skill: string, seconds = 4) {
   return before - m.life;
 }
 
-describe('the huntress', () => {
+describe('the hunter', () => {
   it('has thirteen skills in Archery, Arcane and Venom, and none of the old arrows', () => {
-    expect(SKILL_TREES.huntress.map((b) => b.name)).toEqual(['Archery', 'Arcane', 'Venom']);
-    const skills = classSkills('huntress');
+    expect(SKILL_TREES.hunter.map((b) => b.name)).toEqual(['Archery', 'Arcane', 'Venom']);
+    const skills = classSkills('hunter');
     expect(skills.length).toBe(13);
     for (const gone of ['frost_arrow', 'exploding_arrow', 'storm_arrow', 'evade']) expect(SKILL_BY_ID[gone]).toBeUndefined();
     for (const s of skills) {
-      for (const p of s.prereq ?? []) expect(SKILL_BY_ID[p].classId).toBe('huntress');
-      for (const y of s.synergies ?? []) expect(SKILL_BY_ID[y.skill].classId).toBe('huntress');
+      for (const p of s.prereq ?? []) expect(SKILL_BY_ID[p].classId).toBe('hunter');
+      for (const y of s.synergies ?? []) expect(SKILL_BY_ID[y.skill].classId).toBe('hunter');
       for (const l of [1, 10, 20, 30]) expect(s.lines(s.params(l)).join(' '), `${s.id} ${l}`).not.toMatch(/undefined|NaN/);
     }
-    // Her second set raises a branch she still has.
+    // The class's second set raises a branch it still has.
     const grim = SETS.find((s) => s.id === 'grimhunter')!;
     expect(grim.bonuses[4]!.some((b) => b.stat === 'tree_venom')).toBe(true);
   });
 
-  it('gives an old Huntress every skill point back, and leaves other classes alone', () => {
+  it('turns an old Huntress into a Hunter, gives every skill point back, and leaves other classes alone', () => {
     const old = (classId: Character['classId'], skills: Record<string, number>) => {
       const c = createCharacter('Old', classId);
       c.version = 4;
@@ -80,8 +80,14 @@ describe('the huntress', () => {
       c.hotbar = ['attack', ...Object.keys(skills).slice(0, 3)];
       return c;
     };
-    const h = old('huntress', { power_shot: 5, frost_arrow: 6, exploding_arrow: 4, evade: 3, multishot: 1 });
+    const h = old('hunter', { power_shot: 5, frost_arrow: 6, exploding_arrow: 4, evade: 3, multishot: 1 });
+    (h as { classId: string }).classId = 'huntress';
+    const bow = { ...makeItem('long_bow', 20, 'magic'), mods: [{ stat: 'skills_huntress', value: 2 }] } as unknown as Item;
+    h.equipment.weapon = bow;
     expect(migrateCharacter(h)).toBe(true);
+    expect(h.classId).toBe('hunter');
+    expect(bow.mods).toEqual([{ stat: 'skills_hunter', value: 2 }]);
+    expect(describeMods(bow.mods)).toEqual(['+2 to Hunter Skills']);
     expect(h.version).toBe(SAVE_VERSION);
     expect(h.skills).toEqual({ power_shot: 1 });
     expect(h.skillPoints).toBe(2 + 19 - 1);
@@ -112,7 +118,7 @@ describe('the huntress', () => {
     expect(aa).toBeGreaterThan(ps * 1.5);
   });
 
-  it('Toxin Coating poisons every arrow, and her poison builds up to a limit', () => {
+  it('Toxin Coating poisons every arrow, and the poison builds up to a limit', () => {
     const { w, m } = arena({ toxin_coating: 5 });
     const pr = SKILL_BY_ID.toxin_coating.params(5);
     run(w, 0.6, () => !w.player.action && w.cmdSkill('attack', m.x, m.y, m.id));
@@ -180,7 +186,7 @@ describe('the huntress', () => {
     expect(w.autoTarget(11)?.id).toBe(champ.id);
   });
 
-  it('Corrode: poisoned enemies take more from her', () => {
+  it('Corrode: poisoned enemies take more from the Hunter', () => {
     const { w, m } = arena({ corrode: 5 });
     m.res = { phys: 0, fire: 0, cold: 0, light: 0, poison: 0 };
     const a = m.life;
@@ -203,7 +209,7 @@ describe('the huntress', () => {
     expect(n.poison.dps).toBeGreaterThan(30);
   });
 
-  it('Phase Step sends the dodge further and bursts where she stood', () => {
+  it('Phase Step sends the dodge further and bursts where the Hunter stood', () => {
     const plain = arena({}, 'ghoul', -1);
     const x0 = plain.w.player.x;
     plain.w.cmdDodge({ x: 1, y: 0 });
@@ -231,11 +237,32 @@ describe('the huntress', () => {
     expect(aside.life).toBe(aside.maxLife);
   });
 
-  it('arcane arrows keep her ember alight in the cold', () => {
+  it('arcane arrows keep the ember alight in the cold', () => {
     const { w, m } = arena({ arcane_arrow: 5 });
     Object.defineProperty(w, 'cold', { get: () => true });
     w.ember = 0.5;
     shoot(w, m, 'arcane_arrow', 2);
     expect(w.ember).toBeGreaterThan(0.5);
+  });
+});
+
+describe('old saves of the Huntress', () => {
+  it('rename "+ to Huntress Skills" on items in the shared stash when it is loaded', async () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    try {
+      const { loadSharedStashes } = await import('../src/ui/save');
+      const amulet = { ...makeItem('amulet', 20, 'magic'), mods: [{ stat: 'skills_huntress', value: 1 }] };
+      store.set('hellforge.shared.v1', JSON.stringify({ soft: { items: [{ item: amulet, x: 0, y: 0 }], gold: 5 }, hard: { items: [], gold: 0 } }));
+      const st = loadSharedStashes();
+      expect(st.soft.items[0].item.mods).toEqual([{ stat: 'skills_hunter', value: 1 }]);
+      expect(st.soft.gold).toBe(5);
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
   });
 });

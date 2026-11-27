@@ -70,7 +70,7 @@ describe('exceptional and elite uniques', () => {
 
   it('sit on tiered bases, with every class getting one of each tier', () => {
     for (const t of [1, 2]) {
-      for (const cls of ['reaver', 'arcanist', 'huntress', 'necromancer', 'forgewright', 'hiveborn']) {
+      for (const cls of ['reaver', 'arcanist', 'hunter', 'necromancer', 'forgewright', 'hiveborn']) {
         expect(high.some((u) => tierOf(u.base) === t && u.mods.some((md) => md.stat === `skills_${cls}`))).toBe(true);
       }
     }

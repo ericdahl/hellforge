@@ -1,5 +1,5 @@
 import {
-  BASES, baseOf, itemDefense, itemMods, makeItem, SET_BY_ID, weaponBaseDamage,
+  BASES, baseOf, itemDefense, itemMods, LEGACY_HUNTER, makeItem, renameLegacyMods, SET_BY_ID, weaponBaseDamage,
   type BaseItem, type ClassId, type Item, type Mod, type PotionInfo, type Slot, type StatKey,
   isTreeStat, treeOf,
 } from './items';
@@ -41,10 +41,10 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     desc: 'A scholar of fire, frost and storm. Fragile, but commands devastating elemental magic.',
     start: ['short_staff'], starter: 'fire_bolt',
   },
-  huntress: {
-    id: 'huntress', name: 'Huntress', str: 20, dex: 25, vit: 20, ene: 15, life: 50, lifePerLvl: 2, lifePerVit: 3,
+  hunter: {
+    id: 'hunter', name: 'Hunter', str: 20, dex: 25, vit: 20, ene: 15, life: 50, lifePerLvl: 2, lifePerVit: 3,
     mana: 15, manaPerLvl: 1.5, manaPerEne: 1.5, arBonus: 5, castTime: 0.55, color: '#4f9d58',
-    desc: 'A swift archer from the deep woods. Her arrows carry arcane light and venom, and she marks the strongest prey for death.',
+    desc: 'A swift archer from the deep woods, whose arrows carry arcane light and venom, and who marks the strongest prey for death.',
     start: ['short_bow'], starter: 'power_shot',
   },
   necromancer: {
@@ -669,8 +669,15 @@ export function migrateCharacter(c: Character & { belt?: string[][] }): boolean 
   if (c.version < 3) c.forge = { ...newForgeState(), ...c.forge };
   // v4 added the Daily Descent.
   if (c.version < 4) c.daily ??= { lastDay: 0 };
-  // v5 rebuilt the Huntress's skill tree (Archery, Arcane, Venom): every skill point she had placed comes back to place again.
-  if (c.version < 5 && c.classId === 'huntress') refundSkills(c);
+  if (c.version < 5) {
+    // v5: the Huntress became the Hunter, with a rebuilt skill tree (Archery, Arcane, Venom). Every skill point placed comes back
+    // to place again, and "+ to Huntress Skills" on items becomes "+ to Hunter Skills".
+    if ((c.classId as string) === LEGACY_HUNTER) {
+      c.classId = 'hunter';
+      refundSkills(c);
+    }
+    for (const it of [...c.inventory.map((e) => e.item), ...c.stash.map((e) => e.item), ...Object.values(c.equipment)]) if (it) renameLegacyMods(it);
+  }
   c.version = SAVE_VERSION;
   return true;
 }

@@ -5,7 +5,7 @@ test('the Daily Descent runs from the waypoint and ends with a result card', asy
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.clock.setFixedTime(new Date(2026, 10, 18, 20, 0));
-  await page.goto('/?autostart&seed=21&class=huntress');
+  await page.goto('/?autostart&seed=21&class=hunter');
   await page.waitForFunction(() => !!(window as any).game);
   const openWaypoint = () => page.evaluate(() => {
     const g = (window as any).game;
@@ -51,7 +51,7 @@ test('the Daily Descent runs from the waypoint and ends with a result card', asy
 
   const card = page.locator('.daily-card');
   await expect(card).toBeVisible();
-  await expect(page.locator('.daily-text')).toHaveValue(/^Hellforge Daily · Nov 18 · Huntress lvl 45 · Normal · Floor 2 · \d+:\d\d · 0 deaths$/);
+  await expect(page.locator('.daily-text')).toHaveValue(/^Hellforge Daily · Nov 18 · Hunter lvl 45 · Normal · Floor 2 · \d+:\d\d · 0 deaths$/);
   await page.locator('.daily-copy').click();
   await expect(page.locator('.daily-status')).toHaveText(/Copied|Selected/);
   await page.screenshot({ path: `test-results/${info.project.name}-daily-card.png` });

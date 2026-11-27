@@ -45,7 +45,7 @@ describe('character', () => {
   });
 
   it('enforces skill requirements and prerequisites', () => {
-    const c = createCharacter('H', 'huntress');
+    const c = createCharacter('H', 'hunter');
     c.skillPoints = 5;
     expect(canLearn(c, SKILL_BY_ID.multishot)).toMatch(/level/);
     c.level = 6;

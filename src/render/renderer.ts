@@ -56,7 +56,7 @@ export class Renderer {
   showLabels = true;
   automap: 'off' | 'mini' | 'full' = 'mini';
   hoverId = -1;
-  /** The monster a Huntress's Quarry has marked, copied from the world each frame. */
+  /** The monster a Hunter's Quarry has marked, copied from the world each frame. */
   private quarryId = -1;
   /** Whether Vhorza's ember burns in the town forge. */
   private ember = false;

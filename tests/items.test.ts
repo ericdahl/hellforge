@@ -13,7 +13,7 @@ describe('item data', () => {
   });
 
   it('every class has a unique that raises its skills', () => {
-    for (const cls of ['reaver', 'arcanist', 'huntress', 'necromancer', 'forgewright', 'hiveborn']) {
+    for (const cls of ['reaver', 'arcanist', 'hunter', 'necromancer', 'forgewright', 'hiveborn']) {
       expect(UNIQUES.some((u) => u.mods.some((md) => md.stat === `skills_${cls}`))).toBe(true);
     }
   });
@@ -23,7 +23,7 @@ describe('item data', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  for (const cls of ['reaver', 'arcanist', 'huntress', 'necromancer', 'forgewright', 'hiveborn'] as const) {
+  for (const cls of ['reaver', 'arcanist', 'hunter', 'necromancer', 'forgewright', 'hiveborn'] as const) {
     it(`the ${cls} has a full set that raises its skills by 2`, () => {
       const set = SETS.find((s) => s.classId === cls)!;
       const c = createCharacter('T', cls);

@@ -451,7 +451,7 @@ export interface PlayerState {
   heat: number;
   heatT: number;
   overheat: boolean;
-  /** Seconds until a Huntress's next Drawn Shot is ready. */
+  /** Seconds until a Hunter's next Drawn Shot is ready. */
   drawn: number;
 }
 
@@ -491,10 +491,10 @@ export class World {
   vendors: VendorStock = { healer: [], smith: [] };
   time = 0;
   focusId = -1;
-  /** The monster a Huntress's Quarry has marked, or -1. */
+  /** The monster a Hunter's Quarry has marked, or -1. */
   quarryId = -1;
   private quarryT = 0;
-  /** A Huntress's passives, looked up once per stat refresh rather than on every hit. */
+  /** A Hunter's passives, looked up once per stat refresh rather than on every hit. */
   hunt: Partial<Record<'toxin' | 'drawn' | 'phase' | 'quarry' | 'corrode' | 'bloom', SkillParams>> = {};
   focusT = 0;
   private nextId = 1;
@@ -691,7 +691,7 @@ export class World {
       const l = skillLevel(this.char, id);
       return l ? SKILL_BY_ID[id].params(l) : undefined;
     };
-    this.hunt = this.char.classId !== 'huntress' ? {} : {
+    this.hunt = this.char.classId !== 'hunter' ? {} : {
       toxin: passive('toxin_coating'), drawn: passive('drawn_shot'), phase: passive('phase_step'),
       quarry: passive('quarry'), corrode: passive('corrode'), bloom: passive('blight_bloom'),
     };
@@ -2900,7 +2900,7 @@ export class World {
     const res = o.arcane ? arcaneResists(m.res, o.arcane) : m.res;
     let { total, poison } = applyResists(d, res);
     if (!o.minion) {
-      // Quarry and Corrode: a Huntress's marked prey, and anything her poison is in, take more from her.
+      // Quarry and Corrode: a Hunter's marked prey, and anything the Hunter's poison is in, take more.
       const h = this.hunt;
       if (h.quarry && m.id === this.quarryId) total *= 1 + h.quarry.pct! / 100;
       if (h.corrode && m.poison.t > 0) total *= 1 + h.corrode.pct! / 100;

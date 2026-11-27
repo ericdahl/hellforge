@@ -199,7 +199,7 @@ describe('four arms and equipment', () => {
     expect(k.clawMax).toBeGreaterThan(s.clawMax);
     expect(k.def).toBeGreaterThan(s.def);
     expect(k.dmgReduce).toBe(s.dmgReduce + 5);
-    for (const id of ['reaver', 'arcanist', 'huntress', 'necromancer', 'forgewright'] as const) expect(computeStats(createCharacter('x', id)).clawMax).toBe(0);
+    for (const id of ['reaver', 'arcanist', 'hunter', 'necromancer', 'forgewright'] as const) expect(computeStats(createCharacter('x', id)).clawMax).toBe(0);
   });
 
   it('the comparison view knows about both hands and what a two-hander no longer knocks off', () => {
@@ -270,7 +270,7 @@ describe('claws in a fight', () => {
     expect(Math.hypot(m.x - w.player.x, m.y - w.player.y)).toBeLessThan(2.5);
     expect(w.events.some((e) => e.type === 'msg' && e.text === 'Requires a melee weapon')).toBe(false);
     // Anyone else with a bow is still told no.
-    const h = makeWorld('huntress');
+    const h = makeWorld('hunter');
     h.char.skills.bash = 1;
     h.enterArea('cinder_fields', 'start');
     h.cmdSkill('bash', h.player.x + 1, h.player.y);

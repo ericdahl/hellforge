@@ -24,7 +24,7 @@ export const SKILL_TREES: Record<ClassId, BranchDef[]> = {
     { id: 'cold', name: 'Cold', skills: ['ice_bolt', 'frost_shell', 'frost_nova'] },
     { id: 'lightning', name: 'Storm', skills: ['charged_bolt', 'teleport'] },
   ],
-  huntress: [
+  hunter: [
     { id: 'archery', name: 'Archery', skills: ['power_shot', ['critical_eye', 1], 'multishot', ['quarry', 1], 'strafe'] },
     { id: 'arcane', name: 'Arcane', skills: ['arcane_arrow', 'phase_step', 'drawn_shot', 'arcane_ruin'] },
     { id: 'venom', name: 'Venom', skills: ['toxin_coating', 'venom_cloud', 'corrode', 'blight_bloom'] },

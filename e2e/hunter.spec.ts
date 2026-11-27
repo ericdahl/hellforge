@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-// The Huntress's Archery, Arcane and Venom trees, and what her new skills look like in a fight.
-test('a Huntress shows her three branches and fights with venom, arcane and a marked quarry', async ({ page }, info) => {
+// The Hunter's Archery, Arcane and Venom trees, and what the new skills look like in a fight.
+test('a Hunter shows three branches and fights with venom, arcane and a marked quarry', async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('/?autostart&seed=7&class=huntress');
+  await page.goto('/?autostart&seed=7&class=hunter');
   await page.waitForFunction(() => !!(window as any).game);
   await page.evaluate(() => {
     const g = (window as any).game;
@@ -18,7 +18,7 @@ test('a Huntress shows her three branches and fights with venom, arcane and a ma
   });
   await expect(page.locator('.tree-branch')).toHaveText(['Archery', 'Arcane', 'Venom']);
   await expect(page.locator('.tnode')).toHaveCount(13);
-  await page.screenshot({ path: `test-results/${info.project.name}-huntress-tree.png` });
+  await page.screenshot({ path: `test-results/${info.project.name}-hunter-tree.png` });
 
   // Into the fields, with a champion pack to shoot at.
   await page.evaluate(() => {
@@ -52,9 +52,16 @@ test('a Huntress shows her three branches and fights with venom, arcane and a ma
   expect(state.quarry).toBeGreaterThan(-1);
   expect(state.clouds).toBe(1);
   expect(state.poisoned).toBeGreaterThan(0);
-  await page.screenshot({ path: `test-results/${info.project.name}-huntress-venom.png` });
+  await page.screenshot({ path: `test-results/${info.project.name}-hunter-venom.png` });
   await fight('arcane_ruin');
   await page.waitForTimeout(250);
-  await page.screenshot({ path: `test-results/${info.project.name}-huntress-ruin.png` });
+  await page.screenshot({ path: `test-results/${info.project.name}-hunter-ruin.png` });
   expect(errors).toEqual([]);
+});
+
+// Links made before the Huntress became the Hunter still start a Hunter.
+test('an old class=huntress link starts a Hunter', async ({ page }) => {
+  await page.goto('/?autostart&seed=7&class=huntress');
+  await page.waitForFunction(() => !!(window as any).game);
+  expect(await page.evaluate(() => (window as any).game.world.char.classId)).toBe('hunter');
 });
