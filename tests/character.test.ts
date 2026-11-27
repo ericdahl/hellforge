@@ -53,7 +53,7 @@ describe('character', () => {
     expect(c.hotbar).toContain('multishot');
     expect(canLearn(c, SKILL_BY_ID.bash)).toBe('Wrong class');
     c.level = 12;
-    expect(canLearn(c, SKILL_BY_ID.evade)).toMatch(/Critical Eye/);
+    expect(canLearn(c, SKILL_BY_ID.quarry)).toMatch(/Critical Eye/);
   });
 
   it('+skills only boost learned skills', () => {

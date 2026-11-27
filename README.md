@@ -38,7 +38,7 @@ Panels pause the game
 |---|---|---|
 | **Reaver** | Melee | Bash, Frenzy, Leap Attack, Whirlwind, War Cry |
 | **Arcanist** | Caster | Fire Bolt, Ice Bolt, Charged Bolt, Frost Nova, Teleport, Fireball, Meteor |
-| **Huntress** | Bows | Power Shot, Multishot, Exploding Arrow, Storm Arrow, Strafe, Critical Eye, Evade |
+| **Huntress** | Bows, arcane and poison | *Archery:* Power Shot, Critical Eye, Multishot, Quarry (marks the strongest enemy nearby), Strafe · *Arcane* (ignores resistances, warms the ember): Arcane Arrow, Phase Step, Drawn Shot, Arcane Ruin · *Venom* (poison that stacks): Toxin Coating, Venom Cloud, Corrode, Blight Bloom |
 | **Necromancer** | Summons, curses, bone and poison | *Summons:* Raise Skeleton (from corpses), Grave Golem, Skeletal Mastery · *Curses and corpses:* Mark of Frailty, Corpse Burst · *Bone and poison:* Bone Shards, Bone Ward, Bone Lance, Bone Storm, Blight Nova |
 | **Forgewright** | Two-handed hammers, constructs, Heat | *Hammers:* Sunder, Anvil Drop, Shockwave, Earthshaker · *Constructs:* Ballista and Bellows turrets, Brass Sentinel golem, Furnace (heals allies near it), Gearwork · *Heat:* Temper, Slag Burst, White Heat |
 | **Hiveborn** | Four-armed insect | *Soldier:* Rend, Carapace, Many Hands, Hold the Line, Fourfold Strike · *Archer:* Loose, Sky Hunter, Volley, Skyfall · *Faith:* Prayer of Mending, Ward of Faith, Congregation, Hymn of the Hive, Sky Above |
@@ -161,6 +161,7 @@ The version is shown at the bottom of the title screen; tap it for the player-fa
 
 | Version | Commit | Notes |
 |---|---|---|
+| 0.27.0 | | The Huntress's new skill tree: Archery, Arcane and Venom. Arcane damage ignores part of resistances; her poison stacks (others' still replaces a weaker dose); venom clouds, a beam, a marked quarry; save version 5 refunds Huntress skill points |
 | 0.26.3 | | Faster on phones: the floor is drawn once into a picture a little larger than the screen and stamped as one image, shifted as the camera moves and added to as ground is explored, instead of several hundred tiles a frame |
 | 0.26.2 | | Smoother fights on phones: hit flashes, chill, poison and Heat glows are drawn in shifted colours in one pass instead of through a second canvas (about 5× cheaper each); the resolution steps down when frames arrive late, not only when the game's own script runs long |
 | 0.26.1 | | Smoother crowds on phones: the world is drawn at a lower resolution while frames run slow and sharper again when they're quick; a long frame no longer makes the next one catch up more than three steps |

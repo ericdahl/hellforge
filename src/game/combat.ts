@@ -40,3 +40,30 @@ export function scaleDamage(d: Damage, k: number): Damage {
 export function reducePhysical(phys: number, flat: number): number {
   return Math.max(phys > 0 ? 1 : 0, phys - flat);
 }
+
+/** Resistances with a share of each ignored, as an arcane arrow sees them. Weaknesses (below zero) are left as they are. */
+export function arcaneResists(res: Resists, pct: number): Resists {
+  const k = 1 - Math.min(100, pct) / 100;
+  const r = (v: number) => (v > 0 ? v * k : v);
+  return { phys: r(res.phys), fire: r(res.fire), cold: r(res.cold), light: r(res.light), poison: r(res.poison) };
+}
+
+/** Seconds a dose of poison lasts on a monster. */
+export const POISON_TIME = 3;
+
+/**
+ * Poisons a monster with `amount` damage over POISON_TIME seconds. With `stacks` of 1, the dose replaces a weaker one
+ * (the poison that was there is not added to). With more, it adds to what is left of the poison already in it,
+ * up to `stacks` times this dose's strength, and the clock starts again.
+ */
+export function addPoison(m: { poison: { dps: number; t: number } }, amount: number, stacks = 1) {
+  if (amount <= 0) return;
+  const dps = amount / POISON_TIME;
+  if (stacks <= 1) {
+    if (dps >= m.poison.dps * 0.9) m.poison = { dps, t: POISON_TIME };
+    return;
+  }
+  const left = m.poison.t > 0 ? m.poison.dps * m.poison.t : 0;
+  const total = Math.min((left + amount) / POISON_TIME, dps * stacks);
+  if (total >= m.poison.dps * 0.9 || m.poison.t <= 0) m.poison = { dps: Math.max(total, m.poison.t > 0 ? m.poison.dps : 0), t: POISON_TIME };
+}

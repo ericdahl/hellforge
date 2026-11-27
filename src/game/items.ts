@@ -671,7 +671,7 @@ export const SETS: SetDef[] = [
     bonuses: {
       2: [{ stat: 'ar', value: 80 }],
       3: [{ stat: 'mana', value: 30 }, { stat: 'ias', value: 10 }],
-      4: [{ stat: 'tree_arrows', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'manaOnKill', value: 3 }],
+      4: [{ stat: 'tree_venom', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'manaOnKill', value: 3 }],
     },
   },
   {

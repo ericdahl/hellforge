@@ -1,6 +1,18 @@
 /** Player-facing release notes, newest first. Shown from the version link on the title screen. */
 export const CHANGELOG: { version: string; date: string; notes: string[] }[] = [
   {
+    version: '0.27.0',
+    date: '2026-11-27',
+    notes: [
+      'The Huntress has a new skill tree with three branches: Archery, Arcane and Venom. Frost Arrow, Exploding Arrow, Storm Arrow and Evade are gone. If you already have a Huntress, every skill point she spent is given back for you to place again.',
+      'Archery keeps Power Shot, Multishot, Strafe and Critical Eye, and adds Quarry. Quarry marks the strongest champion, unique or boss near you with a red ring. You hit it harder, and your attacks go for it first.',
+      'Arcane arrows glow violet and get through part of a monster\'s resistances. Phase Step lets you evade some blows, and your dodge roll goes further and leaves a burst behind. Drawn Shot fires a great piercing arrow every few seconds on its own. Arcane Ruin is a beam that cuts through every enemy in a line.',
+      'Venom: Toxin Coating puts poison on every arrow, and her poison builds up with each hit. Venom Cloud leaves a cloud that poisons a whole pack. Corrode makes poisoned enemies take more damage from you. Blight Bloom passes the poison in a dying enemy on to the ones around it.',
+      'In the cold of Act 3, arcane skills keep your ember alight the way fire skills do.',
+      'The Grim Hunter\'s Quiver now raises Venom skills by 3 when the full set is worn.',
+    ],
+  },
+  {
     version: '0.26.3',
     date: '2026-11-25',
     notes: [
