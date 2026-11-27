@@ -200,7 +200,7 @@ export const SKILLS: SkillDef[] = [
   },
   {
     id: 'phase_step', name: 'Phase Step', classId: 'huntress', reqLevel: 12, prereq: ['arcane_arrow'], kind: 'passive',
-    mana: () => 0, params: (l) => ({ pct: dim(6, 3, l, 45), min: 6 + 8 * l, max: 12 + 12 * l, radius: 2.6 }),
+    mana: () => 0, params: (l) => ({ pct: dim(8, 3, l, 55), min: 6 + 8 * l, max: 12 + 12 * l, radius: 2.6 }),
     desc: 'Passive: you slip aside from blows and missiles, and your dodge roll carries you further, leaving a burst of arcane force where you stood.',
     lines: (p) => [`${p.pct}% chance to evade`, `Burst Damage: ${p.min}-${p.max}`, 'Dodge goes 40% further'], color: '#9a7ae8', glyph: '↯',
   },
@@ -221,7 +221,7 @@ export const SKILLS: SkillDef[] = [
   // Venom: poison that builds up, spreads, and eats away at whatever it is in.
   {
     id: 'toxin_coating', name: 'Toxin Coating', classId: 'huntress', reqLevel: 1, kind: 'passive',
-    mana: () => 0, params: (l) => ({ min: 3 + 3 * l, max: 5 + 5 * l, count: Math.min(10, 2 + Math.ceil(l / 2)) }),
+    mana: () => 0, params: (l) => ({ min: 5 + 4 * l, max: 9 + 7 * l, count: Math.min(10, 2 + Math.ceil(l / 2)) }),
     desc: 'Passive: every arrow you shoot is coated in poison. Your poison builds up on an enemy with each hit, up to a limit.',
     lines: (p) => [`Adds ${p.min}-${p.max} Poison Damage over 3s`, `Stacks up to ${p.count} times`], color: '#8ad040', glyph: '☠',
   },

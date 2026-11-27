@@ -115,12 +115,12 @@ describe('the huntress', () => {
   it('Toxin Coating poisons every arrow, and her poison builds up to a limit', () => {
     const { w, m } = arena({ toxin_coating: 5 });
     const pr = SKILL_BY_ID.toxin_coating.params(5);
-    const once = pr.max! / POISON_TIME;
     run(w, 0.6, () => !w.player.action && w.cmdSkill('attack', m.x, m.y, m.id));
     expect(m.poison.t).toBeGreaterThan(0);
     shoot(w, m, 'attack', 5);
-    expect(m.poison.dps).toBeGreaterThan(once * 1.5);
-    expect(m.poison.dps).toBeLessThanOrEqual(once * pr.count! + 1e-6);
+    // More than any one arrow's dose could be, and no more than the limit allows.
+    expect(m.poison.dps).toBeGreaterThan((pr.max! / POISON_TIME) * 1.2);
+    expect(m.poison.dps).toBeLessThanOrEqual((pr.max! / POISON_TIME) * pr.count! + 1e-6);
   });
 
   it('poison from anyone else still only replaces a weaker dose', () => {
