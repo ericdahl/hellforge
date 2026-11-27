@@ -295,7 +295,7 @@ describe('the Daily Descent', () => {
 
   it('gives two different heroes in two different worlds the same floors on the same day', () => {
     const a = deepWorld(1234);
-    const b = makeWorld('huntress', 777);
+    const b = makeWorld('hunter', 777);
     b.char.level = 60;
     b.setQuest('rekindle', 'rewarded');
     b.char.deepest = [25];

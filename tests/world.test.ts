@@ -129,8 +129,8 @@ describe('combat', () => {
     expect(m.life).toBeLessThan(life);
   });
 
-  it('huntress shoots arrows with a bow', () => {
-    const w = makeWorld('huntress');
+  it('hunter shoots arrows with a bow', () => {
+    const w = makeWorld('hunter');
     w.enterArea('cinder_fields', 'start');
     const m = nextToMonster(w);
     w.player.mana = 100;
@@ -354,7 +354,7 @@ describe('quests', () => {
 });
 
 describe('long simulation', () => {
-  for (const cls of ['reaver', 'arcanist', 'huntress'] as const) {
+  for (const cls of ['reaver', 'arcanist', 'hunter'] as const) {
     it(`${cls} bot clears monsters in the Cinder Fields without errors`, () => {
       const w = makeWorld(cls, 4242);
       w.enterArea('cinder_fields', 'start');

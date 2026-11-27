@@ -15,9 +15,9 @@ const PLAN: Record<ClassId, string[]> = {
   necromancer: ['raise_skeleton', 'raise_skeleton', 'bone_shards', 'raise_skeleton', 'frailty', 'skeletal_mastery', 'skeletal_mastery', 'raise_skeleton', 'skeletal_mastery', 'bone_ward', 'raise_skeleton', 'grave_golem', 'skeletal_mastery', 'raise_skeleton', 'bone_shards', 'skeletal_mastery', 'raise_skeleton', 'corpse_burst', 'bone_lance', 'bone_lance', 'bone_lance'],
   forgewright: ['ballista', 'temper', 'sunder', 'sunder', 'slag_burst', 'anvil_drop', 'sunder', 'temper', 'ballista', 'sunder', 'shockwave', 'brass_sentinel', 'shockwave', 'bellows', 'shockwave', 'gearwork', 'furnace', 'shockwave', 'slag_burst', 'white_heat', 'shockwave', 'gearwork', 'earthshaker', 'earthshaker', 'temper'],
   hiveborn: ['rend', 'carapace', 'rend', 'rend', 'carapace', 'many_hands', 'rend', 'mending', 'many_hands', 'carapace', 'rend', 'hold_the_line', 'ward_of_faith', 'many_hands', 'rend', 'hold_the_line', 'carapace', 'fourfold', 'fourfold', 'fourfold', 'rend', 'fourfold', 'many_hands'],
-  huntress: ['power_shot', 'critical_eye', 'power_shot', 'power_shot', 'power_shot', 'multishot', 'multishot', 'multishot', 'multishot', 'multishot', 'evade', 'multishot', 'multishot', 'multishot', 'multishot', 'multishot', 'strafe', 'strafe'],
+  hunter: ['power_shot', 'critical_eye', 'toxin_coating', 'power_shot', 'power_shot', 'multishot', 'multishot', 'multishot', 'arcane_arrow', 'multishot', 'phase_step', 'multishot', 'multishot', 'multishot', 'multishot', 'multishot', 'drawn_shot', 'strafe', 'toxin_coating', 'strafe'],
 };
-const MAIN: Record<ClassId, string[]> = { reaver: ['frenzy', 'bash'], arcanist: ['fireball', 'fire_bolt'], huntress: ['multishot', 'power_shot'], necromancer: ['bone_lance', 'bone_shards'], forgewright: ['shockwave', 'sunder'], hiveborn: ['fourfold', 'rend'] };
+const MAIN: Record<ClassId, string[]> = { reaver: ['frenzy', 'bash'], arcanist: ['fireball', 'fire_bolt'], hunter: ['multishot', 'power_shot'], necromancer: ['bone_lance', 'bone_shards'], forgewright: ['shockwave', 'sunder'], hiveborn: ['fourfold', 'rend'] };
 
 function score(w: World, it: Item): number {
   const b = baseOf(it);
@@ -30,7 +30,7 @@ function score(w: World, it: Item): number {
   if (old) c.equipment[slot] = old;
   else delete c.equipment[slot];
   if (b.kind === 'weapon') {
-    const want = c.classId === 'huntress' ? 'bow' : c.classId === 'arcanist' ? 'staff' : null;
+    const want = c.classId === 'hunter' ? 'bow' : c.classId === 'arcanist' ? 'staff' : null;
     if (want === 'bow' && b.cat !== 'bow') return -1;
     if ((c.classId === 'reaver' || c.classId === 'forgewright' || c.classId === 'hiveborn') && (b.cat === 'bow' || b.cat === 'wand' || b.cat === 'staff')) return -1;
     if (c.classId === 'arcanist' || c.classId === 'necromancer') return after.skillBonus - before.skillBonus + (after.maxLife - before.maxLife) / 20;
@@ -179,7 +179,7 @@ export function playAct(classId: ClassId, seed: number, maxPerArea = 900, route 
           if (classId === 'reaver') allocStat(c, st.str < 60 ? 'str' : 'vit');
           else if (classId === 'forgewright') allocStat(c, st.str < 75 ? 'str' : 'vit');
           else if (classId === 'hiveborn') allocStat(c, st.str < 70 ? 'str' : 'vit');
-          else if (classId === 'huntress') allocStat(c, st.dex < 70 ? 'dex' : 'vit');
+          else if (classId === 'hunter') allocStat(c, st.dex < 70 ? 'dex' : 'vit');
           else allocStat(c, c.alloc.vit <= c.alloc.ene * 2 ? 'vit' : 'ene');
         }
         while (c.skillPoints > 0 && planIdx < PLAN[classId].length * 3) {

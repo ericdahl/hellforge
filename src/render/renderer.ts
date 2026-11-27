@@ -36,6 +36,12 @@ const OUTDOOR = new Set(['fields', 'forest', 'town', 'oasis', 'desert', 'glass',
 const BLOCK_PROPS = BLOCKING;
 /** Pixel ratios the game can step down through when frames run slow. */
 const DPR_STEPS = [2, 1.5, 1.25, 1];
+/** Arrows with a glowing head: tip colour, glow colour and glow radius. */
+const ARROW_GLOW: Record<string, [string, string, number]> = {
+  arcanearrow: ['#e0d0ff', 'rgba(170,120,255,0.55)', 6],
+  drawnshot: ['#ffffff', 'rgba(180,130,255,0.6)', 9],
+  venomarrow: ['#c0f060', 'rgba(120,200,40,0.5)', 6],
+};
 
 export class Renderer {
   readonly cam = new Camera();
@@ -50,6 +56,8 @@ export class Renderer {
   showLabels = true;
   automap: 'off' | 'mini' | 'full' = 'mini';
   hoverId = -1;
+  /** The monster a Hunter's Quarry has marked, copied from the world each frame. */
+  private quarryId = -1;
   /** Whether Vhorza's ember burns in the town forge. */
   private ember = false;
   private propIndex = new WeakMap<Level, Map<number, Prop>>();
@@ -128,6 +136,7 @@ export class Renderer {
   }
 
   render(w: World, dt: number) {
+    this.quarryId = w.quarryId;
     this.time += dt;
     this.ember = hasEmber(w.char);
     const ctx = this.ctx;
@@ -308,6 +317,7 @@ export class Renderer {
     // Meteors in flight.
     for (const h of a.hazards) {
       if (h.fired) {
+        if (h.poisonDps) continue;
         lights.push({ x: h.x, y: h.y, r: h.radius + 1, a: 0.7 });
         continue;
       }
@@ -773,6 +783,7 @@ export class Renderer {
       ctx.restore();
     }
     if (m.thief) this.drawThiefExtras(m, s.x, s.y, z * k);
+    if (m.id === this.quarryId) this.drawQuarryMark(s.x, s.y, z * k);
     if (m.stun > 0.3) this.text('✦', s.x, s.y - 54 * z * k, '#ffe080', 12);
     if (m.curse && m.curse.t > 0) this.text('⛧', s.x, s.y - 58 * z * k, '#c070e0', 13);
     if (m.sunder && m.sunder.t > 0) this.text('⚒', s.x + (m.curse && m.curse.t > 0 ? 14 : 0), s.y - 58 * z * k, '#e8c890', 13);
@@ -785,6 +796,26 @@ export class Renderer {
       ctx.fillStyle = m.built ? '#e8b050' : '#6ad060';
       ctx.fillRect(s.x - bw / 2, by, (bw * m.life) / m.maxLife, 3 * z);
     }
+  }
+
+  /** A hunter's mark at a Quarry's feet: a red ring with four ticks, turning slowly. */
+  private drawQuarryMark(x: number, y: number, k: number) {
+    const ctx = this.ctx;
+    const r = 22 * k;
+    const spin = this.time * 1.2;
+    ctx.save();
+    ctx.strokeStyle = '#ff5a40';
+    ctx.globalAlpha = 0.6 + 0.25 * Math.sin(this.time * 5);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.5, 0, 0, Math.PI * 2);
+    for (let i = 0; i < 4; i++) {
+      const a = spin + (i * Math.PI) / 2;
+      ctx.moveTo(x + Math.cos(a) * r * 0.7, y + Math.sin(a) * r * 0.35);
+      ctx.lineTo(x + Math.cos(a) * r * 1.25, y + Math.sin(a) * r * 0.62);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   /** The Tithe Imp's bulging sack, the glitter coming off it, and how long is left to catch it. */
@@ -840,7 +871,8 @@ export class Renderer {
     const ang = Math.atan2(sdy, sdx);
     ctx.save();
     ctx.translate(s.x, s.y - h);
-    if (pr.kind === 'arrow' || pr.kind === 'm_arrow' || pr.kind === 'frostarrow' || pr.kind === 'firearrow' || pr.kind === 'bolt') {
+    const glow = ARROW_GLOW[pr.kind];
+    if (pr.kind === 'arrow' || pr.kind === 'm_arrow' || pr.kind === 'bolt' || glow) {
       ctx.rotate(ang);
       ctx.strokeStyle = pr.kind === 'm_arrow' ? '#d8d0b8' : pr.kind === 'bolt' ? '#5a4630' : '#8a6a40';
       ctx.lineWidth = (pr.kind === 'bolt' ? 3 : 2) * z;
@@ -848,17 +880,24 @@ export class Renderer {
       ctx.moveTo(-14 * z, 0);
       ctx.lineTo(6 * z, 0);
       ctx.stroke();
-      ctx.fillStyle = pr.kind === 'frostarrow' ? '#9fe0ff' : pr.kind === 'firearrow' ? '#ff9030' : '#ccc';
+      ctx.fillStyle = glow ? glow[0] : '#ccc';
       ctx.beginPath();
       ctx.moveTo(10 * z, 0);
       ctx.lineTo(4 * z, -3 * z);
       ctx.lineTo(4 * z, 3 * z);
       ctx.fill();
-      if (pr.kind === 'frostarrow' || pr.kind === 'firearrow') {
+      if (glow) {
+        // A glowing head, and for a Drawn Shot a long streak of light behind it.
+        const r = glow[2] * z;
         ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = pr.kind === 'frostarrow' ? 'rgba(120,200,255,0.5)' : 'rgba(255,120,30,0.5)';
+        ctx.fillStyle = glow[1];
+        if (pr.kind === 'drawnshot') {
+          ctx.beginPath();
+          ctx.ellipse(-8 * z, 0, 22 * z, 5 * z, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.beginPath();
-        ctx.arc(6 * z, 0, 6 * z, 0, Math.PI * 2);
+        ctx.arc(6 * z, 0, r, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -1951,6 +1990,41 @@ export class Renderer {
         ctx.beginPath();
         ctx.arc(s.x, s.y - 6 * z - k * 6 * z, 12 * z, 0, Math.PI * 2);
         ctx.fill();
+        break;
+      }
+      case 'miasma': {
+        // A puff of venom, rising and spreading as it thins.
+        const r = (10 + 10 * k) * z;
+        const y = s.y - 6 * z - k * 10 * z;
+        const g = ctx.createRadialGradient(s.x, y, 0, s.x, y, r);
+        g.addColorStop(0, `rgba(170,230,80,${0.5 * (1 - k)})`);
+        g.addColorStop(1, 'rgba(60,120,10,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(s.x, y, r, r * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'beam': {
+        // Arcane Ruin: a bright line out to where the beam stopped, fading and narrowing.
+        const len = f.r ?? 8;
+        const e = this.cam.toScreen(f.x + Math.cos(f.ang ?? 0) * len, f.y + Math.sin(f.ang ?? 0) * len);
+        const h = 22 * z;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(150,100,255,${0.6 * (1 - k)})`;
+        ctx.lineWidth = 16 * z * (1 - k) + 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y - h);
+        ctx.lineTo(e.x, e.y - h);
+        ctx.stroke();
+        ctx.strokeStyle = `rgba(240,230,255,${1 - k})`;
+        ctx.lineWidth = 5 * z * (1 - k) + 1;
+        ctx.stroke();
+        const n = Math.ceil(len / 2);
+        for (let i = 0; i <= n; i++) {
+          const t = i / n;
+          lights.push({ x: f.x + Math.cos(f.ang ?? 0) * len * t, y: f.y + Math.sin(f.ang ?? 0) * len * t, r: 2.5, a: 0.8 * (1 - k) });
+        }
         break;
       }
       case 'burn': {

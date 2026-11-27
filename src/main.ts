@@ -1,6 +1,6 @@
 import './style.css';
 import { createCharacter, type Character } from './game/character';
-import type { ClassId } from './game/items';
+import { LEGACY_HUNTER, type ClassId } from './game/items';
 import { Game } from './ui/game';
 import { showMenu } from './ui/menu';
 import { loadCharacters, loadSharedStashes, saveCharacter } from './ui/save';
@@ -20,7 +20,9 @@ function play(c: Character) {
 
 if (params.has('autostart')) {
   // Test hook: jump straight into a fresh hero.
-  const cls = (params.get('class') as ClassId) || 'reaver';
+  // Old links still say class=huntress: the class is the Hunter now.
+  const asked = params.get('class') === LEGACY_HUNTER ? 'hunter' : params.get('class');
+  const cls = (asked as ClassId) || 'reaver';
   const c = createCharacter('Tester', cls);
   saveCharacter(c);
   play(c);

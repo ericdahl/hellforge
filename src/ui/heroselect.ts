@@ -12,7 +12,7 @@ import { heroLook, type Gear } from '../render/looks';
 const OUTFITS: Record<ClassId, Partial<Record<keyof Gear, string>>> = {
   reaver: { weapon: 'war_axe', offhand: 'small_shield', body: 'studded_leather' },
   arcanist: { weapon: 'gnarled_staff' },
-  huntress: { weapon: 'long_bow', body: 'leather_armor' },
+  hunter: { weapon: 'long_bow', body: 'leather_armor' },
   necromancer: { weapon: 'bone_wand' },
   forgewright: { weapon: 'war_hammer' },
   hiveborn: { weapon: 'short_sword', offhand: 'hand_axe' },

@@ -4,7 +4,7 @@ import {
   removeFromGrid, respec, skillLevel, STASH_COLS, STASH_ROWS, takePotion, unequip, xpForLevel, xpMultiplier,
   newSharedStash, type Buffs, type Character, type DailyResult, type PotionPool, type SharedStash, type Stats,
 } from './character';
-import { applyResists, hitChance, reducePhysical, roll, ZERO_DAMAGE, type Damage } from './combat';
+import { addPoison, applyResists, arcaneResists, hitChance, reducePhysical, roll, scaleDamage, ZERO_DAMAGE, type Damage } from './combat';
 import {
   baseOf, buyPrice, displayName, gamble, gamblePrice, generateItem, itemColor, makeItem, nextUid, potionFor, rollDrops,
   sellPrice, type DropTier, type Item, type ItemKind, type Slot,
@@ -59,7 +59,7 @@ export type FxKind =
   | 'shrine' | 'text' | 'shout' | 'revive' | 'whirl' | 'slam' | 'portal_open' | 'raise' | 'curse'
   | 'shatter' | 'cinders' | 'zap' | 'gore' | 'shade_mark' | 'dust' | 'dash' | 'coins'
   | 'frost_mark' | 'warm_mark' | 'snuff_mark' | 'kindle' | 'snuff' | 'toll_mark' | 'frost'
-  | 'anvil' | 'wave' | 'flame' | 'warmth';
+  | 'anvil' | 'wave' | 'flame' | 'warmth' | 'miasma' | 'beam';
 
 export interface Fx {
   kind: FxKind;
@@ -241,6 +241,14 @@ export interface Projectile {
   srcId?: number;
   /** The construct that fired it, so its target can turn on it. */
   servant?: Monster;
+  /** Share of the target's resistances an arcane arrow ignores, in percent. */
+  arcane?: number;
+  /** Knockback on a hit. */
+  knock?: number;
+  /** How many times this arrow's poison can stack (Toxin Coating). */
+  stack?: number;
+  /** A venom cloud left where it bursts. */
+  cloud?: { radius: number; dur: number; dps: number };
 }
 
 export interface GroundItem {
@@ -362,6 +370,8 @@ export interface Hazard {
   /** A falling anvil: lands with a slam and stuns. */
   anvil?: boolean;
   stun?: number;
+  /** A venom cloud: poisons what stands in it, burns nothing and gives no warmth. */
+  poisonDps?: number;
 }
 
 export interface AreaState {
@@ -441,6 +451,8 @@ export interface PlayerState {
   heat: number;
   heatT: number;
   overheat: boolean;
+  /** Seconds until a Hunter's next Drawn Shot is ready. */
+  drawn: number;
 }
 
 export interface Portal {
@@ -479,6 +491,11 @@ export class World {
   vendors: VendorStock = { healer: [], smith: [] };
   time = 0;
   focusId = -1;
+  /** The monster a Hunter's Quarry has marked, or -1. */
+  quarryId = -1;
+  private quarryT = 0;
+  /** A Hunter's passives, looked up once per stat refresh rather than on every hit. */
+  hunt: Partial<Record<'toxin' | 'drawn' | 'phase' | 'quarry' | 'corrode' | 'bloom', SkillParams>> = {};
   focusT = 0;
   private nextId = 1;
   private exploreT = 0;
@@ -525,7 +542,7 @@ export class World {
     this.player = {
       x: 0, y: 0, life: 1, mana: 1, facing: Math.PI / 4, moving: false, walk: 0, path: [], pathT: 0, moveDir: null,
       intent: null, action: null, heal: [], buffs: {}, frenzy: { stacks: 0, t: 0 }, invuln: 0, dead: false, chill: 0,
-      poison: { dps: 0, t: 0 }, hurt: 0, xpBonus: 0, heat: 0, heatT: 0, overheat: false,
+      poison: { dps: 0, t: 0 }, hurt: 0, xpBonus: 0, heat: 0, heatT: 0, overheat: false, drawn: 0,
     };
     this.refreshStats();
     this.player.life = this.stats.maxLife;
@@ -670,6 +687,14 @@ export class World {
   refreshStats() {
     const oldMax = this.stats?.maxLife;
     this.stats = computeStats(this.char, this.buffTotals());
+    const passive = (id: string) => {
+      const l = skillLevel(this.char, id);
+      return l ? SKILL_BY_ID[id].params(l) : undefined;
+    };
+    this.hunt = this.char.classId !== 'hunter' ? {} : {
+      toxin: passive('toxin_coating'), drawn: passive('drawn_shot'), phase: passive('phase_step'),
+      quarry: passive('quarry'), corrode: passive('corrode'), bloom: passive('blight_bloom'),
+    };
     if (this.player) {
       if (oldMax && this.stats.maxLife > oldMax && this.player.buffs.battle_shout) this.player.life += this.stats.maxLife - oldMax;
       this.player.life = Math.min(this.player.life, this.stats.maxLife);
@@ -1306,7 +1331,7 @@ export class World {
       const d = Math.hypot(m.x - p.x, m.y - p.y);
       if (d > range || !lineOfSight(this.area.level, p, m)) continue;
       const ang = Math.abs(angleDiff(Math.atan2(m.y - p.y, m.x - p.x), p.facing));
-      const score = d + ang * 1.2 - (m === focus ? 2 : 0);
+      const score = d + ang * 1.2 - (m === focus ? 2 : 0) - (m.id === this.quarryId ? 4 : 0);
       if (score < bestScore) (bestScore = score), (best = m);
     }
     return best;
@@ -1957,6 +1982,7 @@ export class World {
     this.focusT -= dt;
     this.runTimers(dt);
     this.updatePlayer(dt);
+    this.updateHunt(dt);
     a.flow.update(this.player.x, this.player.y);
     this.updateMonsters(dt);
     this.updateMinions(dt);
@@ -1970,6 +1996,28 @@ export class World {
       this.exploreT = 0.2;
       this.markExplored(false);
     }
+  }
+
+  /** Quarry picks its mark a few times a second; Drawn Shot gathers power. */
+  private updateHunt(dt: number) {
+    const h = this.hunt;
+    const p = this.player;
+    if (h.drawn && p.drawn > 0) {
+      p.drawn -= dt;
+      if (p.drawn <= 0) this.fx({ kind: 'nova', x: p.x, y: p.y, dur: 0.4, r: 0.9, color: '#c8a8ff' });
+    }
+    if (!h.quarry) {
+      this.quarryId = -1;
+      return;
+    }
+    if ((this.quarryT -= dt) > 0) return;
+    this.quarryT = 0.25;
+    let best: Monster | undefined;
+    for (const m of this.monstersNear(p.x, p.y, h.quarry.range!)) {
+      if (m.rarity === 'normal' || m.rarity === 'minion' || m.illusion) continue;
+      if (!best || m.maxLife > best.maxLife) best = m;
+    }
+    this.quarryId = best ? best.id : -1;
   }
 
   private markExplored(force: boolean) {
@@ -2235,7 +2283,7 @@ export class World {
       p.action = { ...base, kind: 'whirl', dur: d / 7, hitAt: 0, x: p.x + Math.cos(ang) * d, y: p.y + Math.sin(ang) * d, tick: 0 };
       return;
     }
-    if (def.kind === 'attack' || def.kind === 'multishot' || def.kind === 'strafe' || def.kind === 'cone' || def.kind === 'quake') {
+    if (def.kind === 'attack' || def.kind === 'multishot' || def.kind === 'strafe' || def.kind === 'cone' || def.kind === 'quake' || def.kind === 'beam') {
       // A plain attack with a bow in hand shoots, unless a Hiveborn's target is close enough to claw.
       const near = targetId !== undefined ? this.area.monsters.find((m) => m.id === targetId && !m.dead) : undefined;
       const claw = this.clawed && def.id === 'attack' && !!near && Math.hypot(near.x - p.x, near.y - p.y) <= 0.3 + near.def.radius + this.meleeReach;
@@ -2396,6 +2444,7 @@ export class World {
       return;
     }
     if (act.kind === 'shoot') {
+      if (def.kind === 'beam') return this.fireBeam(def, pr, ang);
       if (def.kind === 'multishot') {
         const n = pr.count!;
         const spread = Math.min(1.1, 0.12 * n);
@@ -2632,19 +2681,73 @@ export class World {
   private fireArrow(def: SkillDef, pr: SkillParams, ang: number) {
     const p = this.player;
     const st = this.stats;
+    const h = this.hunt;
     const d = this.weaponDamage(def, pr);
-    let chains: Projectile['chains'];
-    if (def.id === 'storm_arrow') chains = { n: pr.chains!, dmg: elemDamage('light', roll(this.rng, pr.min!, pr.max!)) };
-    if (def.id === 'exploding_arrow') this.feedEmber(0.07);
+    let dmg = d.dmg;
+    let kind = 'arrow';
+    let arcane: number | undefined;
+    let knock: number | undefined;
+    let radius = 0.3;
+    let pierce = def.id === 'power_shot';
+    let explode: number | undefined;
+    let cloud: Projectile['cloud'];
+    if (def.id === 'arcane_arrow') {
+      kind = 'arcanearrow';
+      arcane = pr.pct;
+      this.feedEmber(0.05);
+    }
+    if (def.id === 'venom_cloud') {
+      kind = 'venomarrow';
+      explode = 1.2;
+      const syn = synergyBonus(def, this.char.skills);
+      cloud = { radius: pr.radius!, dur: pr.duration!, dps: roll(this.rng, pr.min!, pr.max!) * syn };
+    }
+    // Drawn Shot: the power the bow has gathered goes out with the next arrow.
+    if (h.drawn && p.drawn <= 0 && !explode) {
+      p.drawn = h.drawn.duration!;
+      dmg = scaleDamage(dmg, 1 + h.drawn.dmgPct! / 100);
+      kind = 'drawnshot';
+      arcane = Math.max(arcane ?? 0, h.drawn.pct!);
+      knock = 1.3;
+      radius = 0.45;
+      pierce = true;
+      this.feedEmber(0.05);
+      this.fx({ kind: 'shout', x: p.x, y: p.y, dur: 0.35, r: 1.2, color: '#c8a8ff' });
+      this.sound('light');
+    }
+    if (h.toxin) dmg = { ...dmg, poison: dmg.poison + roll(this.rng, h.toxin.min!, h.toxin.max!) };
     this.spawnProjectile({
-      x: p.x, y: p.y, ang, speed: 15, ttl: 0.8, owner: 'player', dmg: d.dmg, kind: def.id === 'frost_arrow' ? 'frostarrow' : def.id === 'exploding_arrow' ? 'firearrow' : 'arrow',
-      radius: 0.3, ar: st.ar * (1 + (pr.arPct ?? 0) / 100), pierce: def.id === 'power_shot', explode: def.id === 'exploding_arrow' ? pr.radius : undefined,
-      chill: pr.chill, chains, srcLevel: this.char.level,
+      x: p.x, y: p.y, ang, speed: kind === 'drawnshot' ? 18 : 15, ttl: 0.8, owner: 'player', dmg, kind,
+      radius, ar: st.ar * (1 + (pr.arPct ?? 0) / 100), pierce, explode, srcLevel: this.char.level,
+      arcane, knock, stack: h.toxin?.count, cloud,
     });
   }
 
+  /** Arcane Ruin: a beam that runs until it meets a wall and strikes everything along it. */
+  private fireBeam(def: SkillDef, pr: SkillParams, ang: number) {
+    const p = this.player;
+    const l = this.area.level;
+    const ux = Math.cos(ang);
+    const uy = Math.sin(ang);
+    let len = 0.5;
+    while (len < pr.range! && isWalkable(l, p.x + ux * (len + 0.25), p.y + uy * (len + 0.25))) len += 0.25;
+    const wpr = this.withSynergy(def, pr);
+    for (const m of this.monstersNear(p.x, p.y, len + 0.5)) {
+      const along = (m.x - p.x) * ux + (m.y - p.y) * uy;
+      const across = Math.abs((m.x - p.x) * -uy + (m.y - p.y) * ux);
+      if (along < 0 || along > len + m.def.radius || across > 0.55 + m.def.radius) continue;
+      const { dmg, crit } = this.weaponDamage(def, wpr);
+      if (this.hunt.toxin) dmg.poison += roll(this.rng, this.hunt.toxin.min!, this.hunt.toxin.max!);
+      this.damageMonster(m, dmg, { crit, leech: true, arcane: pr.pct, knock: { x: ux, y: uy, f: 0.7 }, poisonStack: this.hunt.toxin?.count });
+    }
+    this.fx({ kind: 'beam', x: p.x, y: p.y, dur: 0.45, r: len, ang });
+    this.emit({ type: 'shake', amount: 4 });
+    this.feedEmber(0.07);
+    this.sound('light');
+  }
+
   /** Physical (with crits) plus elemental adds from gear and the skill. */
-  private weaponDamage(def: SkillDef, pr: SkillParams, melee = false): { dmg: Damage; crit: boolean } {
+  private weaponDamage(_def: SkillDef, pr: SkillParams, melee = false): { dmg: Damage; crit: boolean } {
     const st = this.stats;
     const rng = this.rng;
     // Up close a Hiveborn's claws are in every blow. With a bow in the upper arms they are the whole of it.
@@ -2659,8 +2762,6 @@ export class World {
       light: roll(rng, st.lightMin, st.lightMax),
       poison: st.poisonDmg,
     };
-    if (def.id === 'frost_arrow') dmg.cold += roll(rng, pr.min!, pr.max!);
-    if (def.id === 'exploding_arrow') dmg.fire += roll(rng, pr.min!, pr.max!);
     // Temper: a hot smith's blows burn.
     const heat = this.player.heat;
     if (heat > 0 && !st.isBow) {
@@ -2752,17 +2853,27 @@ export class World {
     x: number; y: number; ang: number; speed: number; ttl: number; owner: 'player' | 'monster'; dmg: Damage; kind: string;
     radius: number; ar?: number; pierce?: boolean; explode?: number; chill?: number; chains?: Projectile['chains']; wobble?: boolean;
     srcLevel: number; srcId?: number; sap?: number; servant?: Monster;
+    arcane?: number; knock?: number; stack?: number; cloud?: Projectile['cloud'];
   }) {
     this.area.projectiles.push({
       id: this.id(), x: o.x + Math.cos(o.ang) * 0.3, y: o.y + Math.sin(o.ang) * 0.3, vx: Math.cos(o.ang) * o.speed, vy: Math.sin(o.ang) * o.speed,
       ttl: o.ttl, owner: o.owner, dmg: o.dmg, radius: o.radius, kind: o.kind, ar: o.ar, pierce: o.pierce, explode: o.explode,
       chill: o.chill, chains: o.chains, wobble: o.wobble, hit: new Set(), srcLevel: o.srcLevel, srcId: o.srcId, sap: o.sap, servant: o.servant,
+      arcane: o.arcane, knock: o.knock, stack: o.stack, cloud: o.cloud,
     });
   }
 
   // ---------------------------------------------------------------- damage
 
-  damageMonster(m: Monster, d: Damage, o: { ar?: number; chill?: number; stun?: number; knock?: { x: number; y: number; f: number }; crit?: boolean; leech?: boolean; minion?: Monster } = {}): boolean {
+  damageMonster(m: Monster, d: Damage, o: {
+    ar?: number; chill?: number; stun?: number; knock?: { x: number; y: number; f: number }; crit?: boolean; leech?: boolean; minion?: Monster;
+    /** Percent of the target's resistances ignored (arcane). */
+    arcane?: number;
+    /** How many times this poison can stack on the target (Toxin Coating). Without it, a new dose only replaces a weaker one. */
+    poisonStack?: number;
+    /** Lingering damage (a venom cloud) that should not pull the hero's attention to each monster it touches. */
+    quiet?: boolean;
+  } = {}): boolean {
     if (m.dead || m.sub || m.calm || m.invulnT) return false;
     if (m.wardId !== undefined) {
       if (this.area.monsters.some((o) => o.id === m.wardId && !o.dead)) {
@@ -2786,8 +2897,15 @@ export class World {
     if (m.sunder && m.sunder.t > 0 && d.phys > 0) d = { ...d, phys: d.phys * (1 + m.sunder.pct / 100) };
     // Struck by a servant: turn on it some of the time.
     if (o.minion && (m.foe === undefined || this.rng.chance(0.3))) m.foe = o.minion.id;
-    let { total, poison } = applyResists(d, m.res);
-    if (d.fire > 0 && m.res.fire < 100) m.burnT = 3;
+    const res = o.arcane ? arcaneResists(m.res, o.arcane) : m.res;
+    let { total, poison } = applyResists(d, res);
+    if (!o.minion) {
+      // Quarry and Corrode: a Hunter's marked prey, and anything the Hunter's poison is in, take more.
+      const h = this.hunt;
+      if (h.quarry && m.id === this.quarryId) total *= 1 + h.quarry.pct! / 100;
+      if (h.corrode && m.poison.t > 0) total *= 1 + h.corrode.pct! / 100;
+    }
+    if (d.fire > 0 && res.fire < 100) m.burnT = 3;
     if (m.def.slag) {
       // Fire stokes a Slag Golem, cold tempers it. The blow lands on whatever it was a moment ago.
       const heat = m.heat ?? 0;
@@ -2798,8 +2916,8 @@ export class World {
       if (heat < SLAG_MOLTEN && m.heat! >= SLAG_MOLTEN) this.floatText(m.x, m.y, 'Molten', '#ff9040', 16);
       if (heat > SLAG_BRITTLE && m.heat! <= SLAG_BRITTLE) this.floatText(m.x, m.y, 'Brittle', '#a8e0ff', 16);
     }
-    if (poison > 0 && poison / 3 >= m.poison.dps * 0.9) m.poison = { dps: poison / 3, t: 3 };
-    if (d.cold > 0 && m.res.cold < 100) m.chill = Math.max(m.chill, o.chill ?? 1.5);
+    if (poison > 0) addPoison(m, poison, o.poisonStack ?? 1);
+    if (d.cold > 0 && res.cold < 100) m.chill = Math.max(m.chill, o.chill ?? 1.5);
     if (o.stun && m.rarity !== 'boss') m.stun = Math.max(m.stun, o.stun);
     if (o.knock && m.rarity !== 'boss' && m.def.ai !== 'totem') {
       const len = Math.hypot(o.knock.x, o.knock.y) || 1;
@@ -2813,8 +2931,8 @@ export class World {
       if (ab >= 1 && !o.minion) this.floatText(m.x, m.y, String(Math.round(ab)), '#ffd870');
     }
     m.life -= dealt;
-    m.flash = 0.12;
-    if (!o.minion) this.setFocus(m);
+    if (!o.quiet) m.flash = 0.12;
+    if (!o.minion && !o.quiet) this.setFocus(m);
     if (m.wyrm === 'fight' && m.life <= m.maxLife * (m.wyrmAngry ? YIELD_ANGRY : YIELD_AT)) {
       m.life = Math.max(1, m.life);
       if (total > 0) this.floatText(m.x, m.y, String(Math.round(total)), '#ffffff');
@@ -2858,6 +2976,21 @@ export class World {
     return true;
   }
 
+  /** Blight Bloom: the poison left in the dead passes to everything close by, and stacks on what is already there. */
+  private blightBloom(m: Monster, pr: SkillParams) {
+    const left = m.poison.dps * m.poison.t;
+    m.poison.t = 0;
+    if (left < 1) return;
+    const dose = (left * pr.pct!) / 100;
+    this.fx({ kind: 'shout', x: m.x, y: m.y, dur: 0.45, r: pr.radius, color: '#a8e040' });
+    for (let i = 0; i < 3; i++) this.fx({ kind: 'miasma', x: m.x + this.rng.range(-0.6, 0.6), y: m.y + this.rng.range(-0.6, 0.6), dur: 1 });
+    for (const o of this.monstersNear(m.x, m.y, pr.radius!)) {
+      if (o === m) continue;
+      addPoison(o, dose * (1 - Math.max(0, o.res.poison) / 100), this.hunt.toxin?.count ?? 3);
+      this.alertPack(o);
+    }
+  }
+
   private alertPack(m: Monster) {
     if (m.alert) return;
     m.alert = true;
@@ -2874,6 +3007,7 @@ export class World {
     m.action = null;
     m.deathKind = m.def.shape === 'wraith' || m.def.shape === 'bat' ? 'normal' : how;
     this.sound('death');
+    if (this.hunt.bloom && m.poison.t > 0) this.blightBloom(m, this.hunt.bloom);
     this.deathEffect(m);
     this.countKill(m);
     // Kills made on a spree are worth more, rank by rank.
@@ -4213,7 +4347,10 @@ export class World {
             pr.ttl = 0;
             break;
           }
-          const hit = this.damageMonster(m, pr.dmg, { ar: pr.ar, chill: pr.chill, leech: pr.ar !== undefined && !pr.servant, minion: pr.servant });
+          const hit = this.damageMonster(m, pr.dmg, {
+            ar: pr.ar, chill: pr.chill, leech: pr.ar !== undefined && !pr.servant, minion: pr.servant, arcane: pr.arcane, poisonStack: pr.stack,
+            knock: pr.knock ? { x: pr.vx, y: pr.vy, f: pr.knock } : undefined,
+          });
           if (hit && pr.chains) this.chainLightning(m, pr.chains.n, pr.chains.dmg);
           if (hit && pr.ar !== undefined) this.sound('hit');
           if (!pr.pierce) {
@@ -4234,10 +4371,21 @@ export class World {
 
   private explode(pr: Projectile) {
     const r = pr.explode!;
+    if (pr.cloud) {
+      // Venom Cloud: the arrow strikes what it hit and leaves the poison hanging in the air.
+      this.fx({ kind: 'nova', x: pr.x, y: pr.y, dur: 0.5, r: pr.cloud.radius, color: '#8ad040' });
+      this.sound('cold');
+      for (const m of this.monstersNear(pr.x, pr.y, r)) this.damageMonster(m, pr.dmg, { ar: pr.ar, leech: true, poisonStack: pr.stack });
+      this.area.hazards.push({
+        x: pr.x, y: pr.y, t: 0, delay: 0, dur: pr.cloud.dur, radius: pr.cloud.radius, dmg: { ...ZERO_DAMAGE }, owner: 'player',
+        burnDps: 0, poisonDps: pr.cloud.dps, srcLevel: pr.srcLevel, fired: true, quiet: true,
+      });
+      return;
+    }
     this.fx({ kind: 'explosion', x: pr.x, y: pr.y, dur: 0.45, r });
     this.sound('boom');
     if (pr.owner === 'player') {
-      for (const m of this.monstersNear(pr.x, pr.y, r)) this.damageMonster(m, pr.dmg, {});
+      for (const m of this.monstersNear(pr.x, pr.y, r)) this.damageMonster(m, pr.dmg, { arcane: pr.arcane, poisonStack: pr.stack });
     } else {
       if (Math.hypot(this.player.x - pr.x, this.player.y - pr.y) < r + 0.3) this.damagePlayer(pr.dmg, { level: pr.srcLevel });
       for (const mi of this.minions) if (!mi.dead && Math.hypot(mi.x - pr.x, mi.y - pr.y) < r + mi.def.radius) this.damageMinion(mi, pr.dmg, { level: pr.srcLevel });
@@ -4666,7 +4814,17 @@ export class World {
         if (h.owner === 'player') for (const m of this.monstersNear(h.x, h.y, h.radius)) this.damageMonster(m, h.dmg, {});
         else if (Math.hypot(p.x - h.x, p.y - h.y) < h.radius) this.damagePlayer(h.dmg, { level: h.srcLevel });
       }
-      if (h.fired && h.t < h.delay + h.dur) {
+      if (h.fired && h.t < h.delay + h.dur && h.poisonDps) {
+        if (Math.floor((h.t - dt) * 4) !== Math.floor(h.t * 4)) {
+          for (let i = 0; i < 2; i++) {
+            const a2 = this.rng.range(0, TAU);
+            const r2 = Math.sqrt(this.rng.next()) * h.radius * 0.8;
+            this.fx({ kind: 'miasma', x: h.x + Math.cos(a2) * r2, y: h.y + Math.sin(a2) * r2, dur: 1.1 });
+          }
+          // Each breath of the cloud tops the poison up to the cloud's own strength: it does not stack.
+          for (const m of this.monstersNear(h.x, h.y, h.radius)) this.damageMonster(m, elemDamage('poison', h.poisonDps * 3), { quiet: true });
+        }
+      } else if (h.fired && h.t < h.delay + h.dur) {
         if (Math.floor((h.t - dt) * 4) !== Math.floor(h.t * 4)) {
           this.fx({ kind: h.cold ? 'frost' : 'burn', x: h.x + this.rng.range(-h.radius, h.radius) * 0.6, y: h.y + this.rng.range(-h.radius, h.radius) * 0.6, dur: 0.6 });
           const burn = elemDamage(h.cold ? 'cold' : 'fire', h.burnDps / 4);
@@ -4691,7 +4849,18 @@ export class World {
     const d = dir && Math.hypot(dir.x, dir.y) > 0.15 ? dir : p.moveDir ?? { x: Math.cos(p.facing), y: Math.sin(p.facing) };
     const len = Math.hypot(d.x, d.y) || 1;
     p.facing = Math.atan2(d.y, d.x);
-    p.action = { kind: 'dodge', skill: 'attack', t: 0, dur: DODGE_TIME, hitAt: 0, done: true, x: d.x / len, y: d.y / len };
+    // Phase Step: further, and leaving a burst of arcane force behind.
+    const phase = this.hunt.phase;
+    const far = phase ? 1.4 : 1;
+    p.action = { kind: 'dodge', skill: 'attack', t: 0, dur: DODGE_TIME, hitAt: 0, done: true, x: (d.x / len) * far, y: (d.y / len) * far };
+    if (phase) {
+      this.fx({ kind: 'shout', x: p.x, y: p.y, dur: 0.4, r: phase.radius, color: '#b48cff' });
+      this.sound('light');
+      for (const m of this.monstersNear(p.x, p.y, phase.radius!)) {
+        this.damageMonster(m, elemDamage('phys', roll(this.rng, phase.min!, phase.max!)), { arcane: 50, knock: { x: m.x - p.x, y: m.y - p.y, f: 0.9 } });
+      }
+      this.feedEmber(0.03);
+    }
     p.intent = null;
     p.path = [];
     p.invuln = Math.max(p.invuln, DODGE_TIME + 0.1);

@@ -93,7 +93,7 @@ const CLASS_BASE: Record<ClassId, HumanoidLook> = {
     body: '#33508f', trim: '#c8a858', skin: '#e0c0a0', legs: '#2e2a24', boots: '#2a2230', head: 'hood', headColor: '#2a3f72', robe: true,
     cape: '#22305a', eyeGlow: '#8ad8ff', accent: '#c8a858',
   },
-  huntress: {
+  hunter: {
     body: '#3d5a32', trim: '#3a2a1a', skin: '#d8a888', legs: '#2e2a24', boots: '#4a3220', head: 'hair', hair: 'tail', headColor: '#b0702a',
     armor: 'leather', cape: '#2e4a2a', quiver: true, build: 0.9, gloves: '#5a3e24',
   },

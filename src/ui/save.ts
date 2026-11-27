@@ -1,5 +1,5 @@
 import { migrateCharacter, newSharedStash, SAVE_VERSION, type Character, type SharedStash } from '../game/character';
-import { bumpUid, type Item } from '../game/items';
+import { bumpUid, renameLegacyMods, type Item } from '../game/items';
 
 const KEY = 'hellforge.chars.v1';
 const BACKUP = `${KEY}.before-v${SAVE_VERSION}`;
@@ -74,7 +74,12 @@ export function loadSharedStashes(): SharedStashes {
   const s = read<Partial<SharedStashes>>(SHARED, {});
   const fix = (x?: Partial<SharedStash>): SharedStash => ({ items: Array.isArray(x?.items) ? x.items : [], gold: Number(x?.gold) || 0 });
   const out = { soft: fix(s.soft), hard: fix(s.hard) };
-  for (const st of [out.soft, out.hard]) for (const e of st.items) bumpUid(e.item.uid);
+  for (const st of [out.soft, out.hard]) {
+    for (const e of st.items) {
+      bumpUid(e.item.uid);
+      renameLegacyMods(e.item);
+    }
+  }
   return out;
 }
 

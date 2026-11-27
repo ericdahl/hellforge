@@ -9,7 +9,7 @@ export type StatKey =
   | 'fireRes' | 'coldRes' | 'lightRes' | 'poisonRes' | 'allRes'
   | 'fireMin' | 'fireMax' | 'coldMin' | 'coldMax' | 'lightMin' | 'lightMax' | 'poisonDmg'
   | 'lifeSteal' | 'manaSteal' | 'ias' | 'frw' | 'fcr' | 'mf' | 'gf' | 'thorns'
-  | 'lifeRegen' | 'manaRegen' | 'allSkills' | 'skills_reaver' | 'skills_arcanist' | 'skills_huntress' | 'skills_necromancer' | 'skills_forgewright' | 'skills_hiveborn'
+  | 'lifeRegen' | 'manaRegen' | 'allSkills' | 'skills_reaver' | 'skills_arcanist' | 'skills_hunter' | 'skills_necromancer' | 'skills_forgewright' | 'skills_hiveborn'
   | 'block' | 'crit' | 'dmgReduce' | 'lifeOnKill' | 'manaOnKill'
   /** The four-armed only: more damage from the claws, and a bigger share of an off-hand weapon's damage in each blow. */
   | 'clawPct' | 'offhandPct'
@@ -35,7 +35,15 @@ export type ItemKind =
 export type WeaponCat = 'sword' | 'axe' | 'mace' | 'dagger' | 'wand' | 'staff' | 'bow';
 export type Rarity = 'normal' | 'magic' | 'rare' | 'set' | 'unique';
 export type Slot = 'head' | 'body' | 'weapon' | 'offhand' | 'gloves' | 'belt' | 'boots' | 'amulet' | 'ring1' | 'ring2';
-export type ClassId = 'reaver' | 'arcanist' | 'huntress' | 'necromancer' | 'forgewright' | 'hiveborn';
+export type ClassId = 'reaver' | 'arcanist' | 'hunter' | 'necromancer' | 'forgewright' | 'hiveborn';
+
+/** The Hunter's id before version 0.28.0, when the class was the Huntress. Old saves and links may still carry it. */
+export const LEGACY_HUNTER = 'huntress';
+
+/** Renames properties that were renamed since the item was made: "+ to Huntress Skills" is now "+ to Hunter Skills". Safe to run twice. */
+export function renameLegacyMods(item: Item) {
+  for (const md of item.mods) if ((md.stat as string) === `skills_${LEGACY_HUNTER}`) md.stat = 'skills_hunter';
+}
 
 export interface PotionInfo {
   type: 'hp' | 'mp' | 'rejuv';
@@ -423,7 +431,7 @@ export const AFFIXES: Affix[] = [
   P('venomous', 'Venomous', 4, ['weapon'], 'poison', [m('poisonDmg', 8, 16)]),
   P('berserkers', "Berserker's", 6, ['melee', 'amulet', 'helm'], 'skills', [m('skills_reaver', 1, 1)], 4),
   P('magus', "Magus's", 6, ['caster', 'amulet', 'helm'], 'skills', [m('skills_arcanist', 1, 1)], 4),
-  P('rangers', "Ranger's", 6, ['bow', 'amulet', 'gloves'], 'skills', [m('skills_huntress', 1, 1)], 4),
+  P('rangers', "Ranger's", 6, ['bow', 'amulet', 'gloves'], 'skills', [m('skills_hunter', 1, 1)], 4),
   P('gravecallers', "Gravecaller's", 6, ['caster', 'amulet', 'helm'], 'skills', [m('skills_necromancer', 1, 1)], 4),
   P('smiths', "Smith's", 6, ['melee', 'amulet', 'gloves'], 'skills', [m('skills_forgewright', 1, 1)], 4),
   P('hives', "Hive's", 6, ['melee', 'bow', 'amulet', 'helm'], 'skills', [m('skills_hiveborn', 1, 1)], 4),
@@ -499,7 +507,7 @@ export const AFFIXES: Affix[] = [
   P('pestilent', 'Pestilent', 56, ['weapon'], 'poison', [m('poisonDmg', 41, 70)]),
   P('warlords', "Warlord's", 45, ['melee', 'amulet', 'helm'], 'skills', [m('skills_reaver', 2, 2)], 2),
   P('archmages', "Archmage's", 45, ['caster', 'amulet', 'helm'], 'skills', [m('skills_arcanist', 2, 2)], 2),
-  P('pathfinders', "Pathfinder's", 45, ['bow', 'amulet', 'gloves'], 'skills', [m('skills_huntress', 2, 2)], 2),
+  P('pathfinders', "Pathfinder's", 45, ['bow', 'amulet', 'gloves'], 'skills', [m('skills_hunter', 2, 2)], 2),
   P('lichs', "Lich's", 45, ['caster', 'amulet', 'helm'], 'skills', [m('skills_necromancer', 2, 2)], 2),
   P('master_smiths', "Master Smith's", 45, ['melee', 'amulet', 'gloves'], 'skills', [m('skills_forgewright', 2, 2)], 2),
   P('broodmothers', "Broodmother's", 45, ['melee', 'bow', 'amulet', 'helm'], 'skills', [m('skills_hiveborn', 2, 2)], 2),
@@ -570,7 +578,7 @@ export const UNIQUES: UniqueDef[] = [
   U('cryptkeepers_shroud', "Cryptkeeper's Shroud", 'hard_leather', 7, [m('skills_necromancer', 1, 1), m('defPct', 60, 80), m('mana', 25, 25), m('poisonRes', 20, 20)]),
   U('ironwrath', 'Ironwrath', 'war_axe', 12, [m('skills_reaver', 2, 2), m('edPct', 80, 110), m('ar', 60, 60), m('life', 20, 20)]),
   U('stormcaller', 'Stormcaller', 'gnarled_staff', 12, [m('skills_arcanist', 2, 2), m('fcr', 20, 20), m('lightRes', 30, 30), m('mana', 40, 40)]),
-  U('vaels_requiem', "Vael's Requiem", 'long_bow', 13, [m('edPct', 100, 140), m('skills_huntress', 1, 1), m('ias', 20, 20), m('lightMin', 1, 1), m('lightMax', 25, 25)]),
+  U('vaels_requiem', "Vael's Requiem", 'long_bow', 13, [m('edPct', 100, 140), m('skills_hunter', 1, 1), m('ias', 20, 20), m('lightMin', 1, 1), m('lightMax', 25, 25)]),
   U('butchers_oath', "Butcher's Oath", 'great_axe', 14, [m('edPct', 120, 160), m('crit', 15, 15), m('lifeSteal', 6, 6), m('str', 10, 10)]),
   U('plaguevine', 'Plaguevine Grips', 'chain_gloves', 14, [m('poisonDmg', 30, 30), m('poisonRes', 30, 30), m('dex', 8, 8), m('ias', 20, 20)]),
   U('eye_of_hellforge', 'Eye of the Hellforge', 'amulet', 14, [m('allSkills', 1, 1), m('allRes', 15, 15), m('life', 20, 20), m('mf', 20, 20)]),
@@ -578,7 +586,7 @@ export const UNIQUES: UniqueDef[] = [
   U('glassfang', 'Glassfang', 'jambiya', 19, [m('edPct', 90, 130), m('crit', 12, 12), m('ias', 25, 25), m('dex', 10, 10)]),
   U('sunder_of_imhara', 'Sunder of Imhara', 'scimitar', 20, [m('edPct', 110, 150), m('fireMin', 8, 8), m('fireMax', 22, 22), m('str', 12, 12), m('lifeSteal', 5, 5)]),
   U('viziers_wrappings', "Vizier's Wrappings", 'lamellar', 21, [m('skills_necromancer', 2, 2), m('defPct', 90, 120), m('life', 35, 35), m('fcr', 15, 15)]),
-  U('last_kite', 'The Last Kite', 'recurve_bow', 22, [m('skills_huntress', 2, 2), m('edPct', 100, 140), m('ias', 15, 15), m('frw', 15, 15)]),
+  U('last_kite', 'The Last Kite', 'recurve_bow', 22, [m('skills_hunter', 2, 2), m('edPct', 100, 140), m('ias', 15, 15), m('frw', 15, 15)]),
   U('caravan_queen', "Caravan Queen's Sandals", 'dune_boots', 19, [m('frw', 35, 35), m('allRes', 15, 15), m('mf', 25, 25), m('life', 25, 25)]),
   U('hollow_crown', 'The Hollow Crown', 'wrapped_helm', 22, [m('allSkills', 1, 1), m('defPct', 100, 130), m('fireRes', 35, 35), m('mana', 50, 50)]),
   U('noons_verdict', "Noon's Verdict", 'dial_staff', 24, [m('skills_arcanist', 3, 3), m('fcr', 30, 30), m('fireRes', 25, 25), m('mana', 60, 60)]),
@@ -588,7 +596,7 @@ export const UNIQUES: UniqueDef[] = [
   U('last_watch', 'The Last Watch', 'watch_blade', 30, [m('edPct', 130, 170), m('allRes', 20, 20), m('lifeSteal', 6, 6), m('lifeOnKill', 8, 8)]),
   U('emberkeeper', 'Emberkeeper', 'ember_wand', 28, [m('skills_necromancer', 2, 2), m('skills_arcanist', 2, 2), m('fcr', 25, 25), m('fireRes', 30, 30), m('coldRes', 30, 30)]),
   U('founders_voice', "The Founder's Voice", 'bell_staff', 30, [m('skills_arcanist', 3, 3), m('fcr', 35, 35), m('mana', 80, 80), m('coldRes', 35, 35)]),
-  U('rimefall', 'Rimefall', 'horn_bow', 28, [m('skills_huntress', 2, 2), m('edPct', 120, 160), m('coldMin', 8, 8), m('coldMax', 20, 20), m('ias', 20, 20)]),
+  U('rimefall', 'Rimefall', 'horn_bow', 28, [m('skills_hunter', 2, 2), m('edPct', 120, 160), m('coldMin', 8, 8), m('coldMax', 20, 20), m('ias', 20, 20)]),
   U('wrens_mantle', "Wren's Mantle", 'fur_mantle', 26, [m('defPct', 100, 130), m('coldRes', 40, 40), m('life', 45, 45), m('allSkills', 1, 1)]),
   U('unlit_crown', 'Crown of the Unlit', 'watch_helm', 31, [m('allSkills', 2, 2), m('defPct', 110, 140), m('coldRes', 40, 40), m('life', 40, 40), m('mana', 40, 40)]),
   U('bell_of_the_deep', 'Bell of the Deep', 'bell_shield', 28, [m('defPct', 120, 150), m('block', 18, 18), m('dmgReduce', 6, 6), m('thorns', 20, 20), m('coldRes', 25, 25)]),
@@ -610,7 +618,7 @@ export const UNIQUES: UniqueDef[] = [
   // Exceptional (Emberforged) uniques, found from Nightmare on.
   U('cinderbrand', 'Cinderbrand', 'broad_sword_x', 48, [m('skills_reaver', 2, 2), m('edPct', 170, 210), m('fireMin', 15, 15), m('fireMax', 40, 40), m('lifeSteal', 8, 8), m('str', 18, 18)]),
   U('ashwhisper', 'Ashwhisper', 'battle_staff_x', 48, [m('skills_arcanist', 3, 3), m('fcr', 30, 30), m('mana', 90, 90), m('allRes', 20, 20), m('ene', 20, 20)]),
-  U('gloamstring', 'Gloamstring', 'battle_bow_x', 48, [m('skills_huntress', 2, 2), m('edPct', 160, 200), m('ias', 20, 20), m('crit', 15, 15), m('dex', 20, 20)]),
+  U('gloamstring', 'Gloamstring', 'battle_bow_x', 48, [m('skills_hunter', 2, 2), m('edPct', 160, 200), m('ias', 20, 20), m('crit', 15, 15), m('dex', 20, 20)]),
   U('ossuary_key', 'The Ossuary Key', 'bone_wand_x', 44, [m('skills_necromancer', 3, 3), m('fcr', 25, 25), m('mana', 60, 60), m('poisonRes', 40, 40), m('life', 40, 40)]),
   U('brandfather', 'Brandfather', 'great_maul_x', 48, [m('skills_forgewright', 2, 2), m('edPct', 180, 220), m('fireMin', 15, 15), m('fireMax', 45, 45), m('str', 20, 20), m('crit', 10, 10)]),
   U('broodsting', "The Broodmother's Sting", 'jambiya_x', 50, [m('skills_hiveborn', 2, 2), m('edPct', 150, 190), m('poisonDmg', 70, 70), m('ias', 25, 25), m('clawPct', 40, 40)]),
@@ -624,7 +632,7 @@ export const UNIQUES: UniqueDef[] = [
   // Elite (Hellforged) uniques, found late in Nightmare and through Hell.
   U('doomsayer', 'Doomsayer', 'scimitar_e', 68, [m('skills_reaver', 3, 3), m('edPct', 230, 280), m('lifeSteal', 9, 9), m('crit', 20, 20), m('allRes', 25, 25), m('str', 25, 25)]),
   U('last_equinox', 'The Last Equinox', 'gnarled_staff_e', 60, [m('skills_arcanist', 4, 4), m('fcr', 40, 40), m('mana', 140, 140), m('allRes', 25, 25)]),
-  U('hollowmoon', 'Hollowmoon', 'recurve_bow_e', 70, [m('skills_huntress', 3, 3), m('edPct', 220, 270), m('ias', 25, 25), m('crit', 20, 20), m('coldMin', 20, 20), m('coldMax', 45, 45)]),
+  U('hollowmoon', 'Hollowmoon', 'recurve_bow_e', 70, [m('skills_hunter', 3, 3), m('edPct', 220, 270), m('ias', 25, 25), m('crit', 20, 20), m('coldMin', 20, 20), m('coldMax', 45, 45)]),
   U('requiem_unsung', 'Requiem Unsung', 'glass_wand_e', 69, [m('skills_necromancer', 4, 4), m('fcr', 35, 35), m('mana', 120, 120), m('life', 70, 70), m('allRes', 20, 20)]),
   U('heart_of_the_forge', 'Heart of the Hellforge', 'obsidian_maul_e', 71, [m('skills_forgewright', 3, 3), m('edPct', 240, 290), m('fireMin', 30, 30), m('fireMax', 80, 80), m('str', 30, 30), m('fireRes', 40, 40)]),
   U('swarmcrown', 'Swarmcrown Cleaver', 'crescent_axe_e', 70, [m('skills_hiveborn', 3, 3), m('edPct', 220, 270), m('clawPct', 60, 60), m('offhandPct', 40, 40), m('ias', 20, 20)]),
@@ -717,7 +725,7 @@ export const SETS: SetDef[] = [
   {
     id: 'thornstalker',
     name: "Thornstalker's Kit",
-    classId: 'huntress',
+    classId: 'hunter',
     pieces: [
       { id: 'thornstalker_hood', name: 'Thornstalker Hood', base: 'skull_cap', mods: [m('dex', 8, 8), m('life', 15, 15)] },
       { id: 'thornstalker_jerkin', name: 'Thornstalker Jerkin', base: 'leather_armor', mods: [m('defPct', 50, 50), m('poisonRes', 20, 20)] },
@@ -727,7 +735,7 @@ export const SETS: SetDef[] = [
     bonuses: {
       2: [{ stat: 'ar', value: 80 }],
       3: [{ stat: 'crit', value: 10 }],
-      4: [{ stat: 'skills_huntress', value: 2 }, { stat: 'edPct', value: 40 }, { stat: 'ias', value: 15 }],
+      4: [{ stat: 'skills_hunter', value: 2 }, { stat: 'edPct', value: 40 }, { stat: 'ias', value: 15 }],
     },
   },
   {
@@ -831,7 +839,7 @@ export const SETS: SetDef[] = [
   {
     id: 'grimhunter',
     name: "The Grim Hunter's Quiver",
-    classId: 'huntress',
+    classId: 'hunter',
     pieces: [
       { id: 'grimhunter_hood', name: "Grim Hunter's Hood", base: 'cap', mods: [m('dex', 6, 6), m('mana', 15, 15)] },
       { id: 'grimhunter_brigandine', name: "Grim Hunter's Brigandine", base: 'hard_leather', mods: [m('defPct', 45, 45), m('life', 20, 20)] },
@@ -841,7 +849,7 @@ export const SETS: SetDef[] = [
     bonuses: {
       2: [{ stat: 'ar', value: 80 }],
       3: [{ stat: 'mana', value: 30 }, { stat: 'ias', value: 10 }],
-      4: [{ stat: 'tree_arrows', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'manaOnKill', value: 3 }],
+      4: [{ stat: 'tree_venom', value: 3 }, { stat: 'allRes', value: 15 }, { stat: 'manaOnKill', value: 3 }],
     },
   },
   {
@@ -930,7 +938,7 @@ export const EQUIP_KINDS: ItemKind[] = ['weapon', 'shield', 'armor', 'helm', 'gl
 const CLASS_WEAPONS: Record<ClassId, WeaponCat[]> = {
   reaver: ['sword', 'axe', 'mace'],
   arcanist: ['wand', 'staff'],
-  huntress: ['bow', 'dagger'],
+  hunter: ['bow', 'dagger'],
   necromancer: ['wand', 'dagger'],
   forgewright: ['mace', 'axe'],
   hiveborn: ['sword', 'axe', 'dagger', 'bow'],
@@ -1196,7 +1204,7 @@ const STAT_TEXT: Record<StatKey, (v: number) => string> = {
   allSkills: (v) => `+${v} to All Skills`,
   skills_reaver: (v) => `+${v} to Reaver Skills`,
   skills_arcanist: (v) => `+${v} to Arcanist Skills`,
-  skills_huntress: (v) => `+${v} to Huntress Skills`,
+  skills_hunter: (v) => `+${v} to Hunter Skills`,
   skills_necromancer: (v) => `+${v} to Necromancer Skills`,
   skills_forgewright: (v) => `+${v} to Forgewright Skills`,
   skills_hiveborn: (v) => `+${v} to Hiveborn Skills`,

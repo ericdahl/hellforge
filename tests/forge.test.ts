@@ -515,7 +515,7 @@ describe('the forge in the world', () => {
 
 describe('saves', () => {
   it('a version 2 hero gains an empty forge and keeps everything else', () => {
-    const c = createCharacter('Old', 'huntress');
+    const c = createCharacter('Old', 'hunter');
     const old = structuredClone(c) as Omit<Character, 'forge'> & { forge?: Character['forge'] };
     delete old.forge;
     old.version = 2;

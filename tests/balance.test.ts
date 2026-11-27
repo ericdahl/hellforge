@@ -12,7 +12,7 @@ const run = (classId: ClassId, seed: number, o: Partial<AreaReport>[] = []): Run
   classId, seed, areas: [rep('cinder_fields', o[0]), rep('noon_vault', o[1]), rep('hellforge_heart', o[2])],
 });
 
-const CLASSES: ClassId[] = ['reaver', 'arcanist', 'huntress', 'necromancer', 'forgewright'];
+const CLASSES: ClassId[] = ['reaver', 'arcanist', 'hunter', 'necromancer', 'forgewright'];
 const even = () => CLASSES.flatMap((c) => [run(c, 1), run(c, 2)]);
 
 describe('balance report arithmetic', () => {
@@ -38,11 +38,11 @@ describe('balance report arithmetic', () => {
 
   it('totals an act per run, and counts bosses only where there is one', () => {
     const two = (classId: ClassId, seed: number): Run => ({ classId, seed, areas: [rep('cinder_fields'), rep('hollow_cave', { bossDead: seed === 1 }), rep('glass_sea')] });
-    const s = summarize([two('huntress', 1), two('huntress', 2)]);
+    const s = summarize([two('hunter', 1), two('hunter', 2)]);
     expect(Object.keys(s.byAct)).toEqual(['1', '2']);
-    const a1 = s.byAct[1].huntress!;
+    const a1 = s.byAct[1].hunter!;
     expect(a1).toMatchObject({ runs: 2, time: 200, deaths: 2, potions: 20, bossRuns: 2, bossKills: 1 });
-    expect(s.byAct[2].huntress).toMatchObject({ time: 100, bossRuns: 0 });
+    expect(s.byAct[2].hunter).toMatchObject({ time: 100, bossRuns: 0 });
   });
 });
 
@@ -54,11 +54,11 @@ describe('balance flags', () => {
   it('flags a boss the bot could not kill, most important first', () => {
     const runs = even();
     runs.find((r) => r.classId === 'arcanist' && r.seed === 2)!.areas[1].bossDead = false;
-    runs.find((r) => r.classId === 'huntress')!.areas[0].time = 400;
-    runs.find((r) => r.classId === 'huntress' && r.seed === 2)!.areas[0].time = 400;
+    runs.find((r) => r.classId === 'hunter')!.areas[0].time = 400;
+    runs.find((r) => r.classId === 'hunter' && r.seed === 2)!.areas[0].time = 400;
     const f = summarize(runs).flags;
     expect(f[0]).toMatchObject({ level: 'high', classId: 'arcanist', where: 'The Noon Vault', text: 'boss survived 1 of 2 runs' });
-    expect(f[1]).toMatchObject({ level: 'low', classId: 'huntress', where: 'Cinder Fields' });
+    expect(f[1]).toMatchObject({ level: 'low', classId: 'hunter', where: 'Cinder Fields' });
     expect(f[1].text).toBe('400s, against a median of 100s');
     expect(f.length).toBe(2);
   });
@@ -69,7 +69,7 @@ describe('balance flags', () => {
     runs[2].areas[0].potions = 90;
     runs[3].areas[0].deaths = 1;
     const f = summarize(runs).flags;
-    expect(f.map((x) => `${x.level} ${x.classId} ${x.where}`)).toEqual(['high arcanist Act 1', 'low huntress Act 1', 'low necromancer Act 1']);
+    expect(f.map((x) => `${x.level} ${x.classId} ${x.where}`)).toEqual(['high arcanist Act 1', 'low hunter Act 1', 'low necromancer Act 1']);
     expect(f[0].text).toBe('40 deaths a run, against a median of 8');
     expect(f[1].text).toBe('90 potions a run, against a median of 30');
     expect(f[2].text).toContain('much safer');

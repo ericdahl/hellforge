@@ -5,7 +5,7 @@ export type SkillKind =
   | 'attack' | 'passive' | 'buff' | 'projectile' | 'nova' | 'teleport' | 'leap' | 'whirlwind'
   | 'meteor' | 'multishot' | 'strafe' | 'bolts'
   | 'summon' | 'curse' | 'corpse' | 'shards' | 'ring'
-  | 'construct' | 'anvil' | 'cone' | 'quake' | 'vent' | 'mend';
+  | 'construct' | 'anvil' | 'cone' | 'quake' | 'vent' | 'mend' | 'beam';
 
 export interface SkillParams {
   /** Bonus % weapon damage for attack skills. */
@@ -159,54 +159,90 @@ export const SKILLS: SkillDef[] = [
     lines: (p) => [`Fire Damage: ${p.min}-${p.max}`, `Radius: ${p.radius} yards`, 'Leaves burning ground'],
     synergies: [{ skill: 'fire_bolt', pct: 10 }, { skill: 'fireball', pct: 10 }], color: '#ff5522', glyph: '☀',
   },
-  // ------------------------------------------------------------ Huntress
+  // ------------------------------------------------------------ Hunter
+  // Archery
   {
-    id: 'power_shot', name: 'Power Shot', classId: 'huntress', reqLevel: 1, kind: 'attack', weapon: 'bow',
+    id: 'power_shot', name: 'Power Shot', classId: 'hunter', reqLevel: 1, kind: 'attack', weapon: 'bow',
     mana: () => 1.5, params: (l) => ({ dmgPct: 50 + 20 * l, arPct: 25 + 10 * l }),
     desc: 'A carefully aimed arrow that pierces.', lines: (p) => [`+${p.dmgPct}% Damage`, `+${p.arPct}% Attack Rating`, 'Pierces'],
     color: '#d6c06a', glyph: '➶',
   },
   {
-    id: 'critical_eye', name: 'Critical Eye', classId: 'huntress', reqLevel: 1, kind: 'passive',
+    id: 'critical_eye', name: 'Critical Eye', classId: 'hunter', reqLevel: 1, kind: 'passive',
     mana: () => 0, params: (l) => ({ pct: dim(12, 5, l, 70) }),
     desc: 'Passive: chance to deal double physical damage.', lines: (p) => [`${p.pct}% chance of double damage`],
     color: '#e6e6e6', glyph: '◎',
   },
   {
-    id: 'multishot', name: 'Multishot', classId: 'huntress', reqLevel: 6, prereq: ['power_shot'], kind: 'multishot', weapon: 'bow',
+    id: 'multishot', name: 'Multishot', classId: 'hunter', reqLevel: 6, prereq: ['power_shot'], kind: 'multishot', weapon: 'bow',
     mana: (l) => 4 + 0.5 * l, params: (l) => ({ count: Math.min(15, 2 + l), dmgPct: -25 + 8 * l }),
     desc: 'Loose a fan of arrows.', lines: (p) => [`Arrows: ${p.count}`, `${p.dmgPct! >= 0 ? '+' : ''}${p.dmgPct}% Damage`],
     color: '#b9d06a', glyph: '⋔',
   },
   {
-    id: 'frost_arrow', name: 'Frost Arrow', classId: 'huntress', reqLevel: 6, kind: 'attack', weapon: 'bow', element: 'cold',
-    mana: () => 3, params: (l) => ({ min: 3 + 3 * l, max: 6 + 4 * l, chill: 2 + 0.3 * l }),
-    desc: 'An arrow wrapped in frost that chills.', lines: (p) => [`Adds ${p.min}-${p.max} Cold Damage`, `Chill: ${p.chill!.toFixed(1)}s`],
-    color: '#8fdcff', glyph: '❆',
+    id: 'quarry', name: 'Quarry', classId: 'hunter', reqLevel: 12, prereq: ['critical_eye'], kind: 'passive',
+    mana: () => 0, params: (l) => ({ pct: 20 + 8 * l, range: 12 }),
+    desc: 'Passive: the strongest enemy near you, a champion, a unique or a boss, is marked as your quarry. You hit it harder, and you shoot at it first.',
+    lines: (p) => [`+${p.pct}% Damage to your quarry`, `Marks within ${p.range} yards`], color: '#ff7a5a', glyph: '⌖',
   },
   {
-    id: 'evade', name: 'Evade', classId: 'huntress', reqLevel: 12, prereq: ['critical_eye'], kind: 'passive',
-    mana: () => 0, params: (l) => ({ pct: dim(8, 3, l, 55) }),
-    desc: 'Passive: chance to dodge attacks and missiles.', lines: (p) => [`${p.pct}% chance to evade`],
-    color: '#9bd39b', glyph: '↯',
-  },
-  {
-    id: 'exploding_arrow', name: 'Exploding Arrow', classId: 'huntress', reqLevel: 12, prereq: ['multishot'], kind: 'attack', weapon: 'bow', element: 'fire',
-    mana: (l) => 5 + 0.3 * l, params: (l) => ({ min: 4 + 5 * l, max: 8 + 7 * l, radius: 2 }),
-    desc: 'An arrow that bursts into flame on impact.', lines: (p) => [`Adds ${p.min}-${p.max} Fire Damage`, `Radius: ${p.radius} yards`],
-    color: '#ff8c3a', glyph: '✹',
-  },
-  {
-    id: 'strafe', name: 'Strafe', classId: 'huntress', reqLevel: 18, prereq: ['multishot'], kind: 'strafe', weapon: 'bow',
+    id: 'strafe', name: 'Strafe', classId: 'hunter', reqLevel: 18, prereq: ['multishot'], kind: 'strafe', weapon: 'bow',
     mana: () => 9, params: (l) => ({ count: Math.min(10, 3 + Math.floor(l / 2)), dmgPct: 20 + 10 * l }),
     desc: 'Rapidly fire at several nearby enemies.', lines: (p) => [`Targets: ${p.count}`, `+${p.dmgPct}% Damage`],
     color: '#e3d38c', glyph: '⇶',
   },
+  // Arcane: arrows that slip past whatever a monster is proof against. Arcane warmth feeds the ember in the cold.
   {
-    id: 'storm_arrow', name: 'Storm Arrow', classId: 'huntress', reqLevel: 24, prereq: ['exploding_arrow', 'strafe'], kind: 'attack', weapon: 'bow', element: 'light',
-    mana: (l) => 10 + l * 0.5, params: (l) => ({ min: 10 + 8 * l, max: 30 + 12 * l, chains: 2 + Math.floor(l / 3) }),
-    desc: 'An arrow that unleashes chain lightning on impact.',
-    lines: (p) => [`Lightning Damage: ${p.min}-${p.max}`, `Chains: ${p.chains}`], color: '#d6e6ff', glyph: 'ϟ',
+    id: 'arcane_arrow', name: 'Arcane Arrow', classId: 'hunter', reqLevel: 6, kind: 'attack', weapon: 'bow',
+    mana: () => 3, params: (l) => ({ dmgPct: 30 + 12 * l, pct: dim(25, 3, l, 75) }),
+    desc: 'An arrow wrapped in arcane light. It slips past resistances, so nothing is proof against it.',
+    lines: (p) => [`+${p.dmgPct}% Damage`, `Ignores ${p.pct}% of resistances`], color: '#b48cff', glyph: '✧',
+  },
+  {
+    id: 'phase_step', name: 'Phase Step', classId: 'hunter', reqLevel: 12, prereq: ['arcane_arrow'], kind: 'passive',
+    mana: () => 0, params: (l) => ({ pct: dim(8, 3, l, 55), min: 6 + 8 * l, max: 12 + 12 * l, radius: 2.6 }),
+    desc: 'Passive: you slip aside from blows and missiles, and your dodge roll carries you further, leaving a burst of arcane force where you stood.',
+    lines: (p) => [`${p.pct}% chance to evade`, `Burst Damage: ${p.min}-${p.max}`, 'Dodge goes 40% further'], color: '#9a7ae8', glyph: '↯',
+  },
+  {
+    id: 'drawn_shot', name: 'Drawn Shot', classId: 'hunter', reqLevel: 18, prereq: ['phase_step'], kind: 'passive',
+    mana: () => 0, params: (l) => ({ duration: Math.max(2, 6 - 0.25 * (l - 1)), dmgPct: 100 + 30 * l, pct: 50 }),
+    desc: 'Passive: the bow slowly gathers arcane power. Every few seconds your next arrow goes off as a great piercing blast that throws enemies back.',
+    lines: (p) => [`Every ${p.duration!.toFixed(2).replace(/\.?0+$/, '')}s`, `+${p.dmgPct}% Damage`, `Ignores ${p.pct}% of resistances`, 'Pierces and knocks back'],
+    color: '#c8a8ff', glyph: '➳',
+  },
+  {
+    id: 'arcane_ruin', name: 'Arcane Ruin', classId: 'hunter', reqLevel: 24, prereq: ['drawn_shot'], kind: 'beam', weapon: 'bow',
+    mana: (l) => 14 + 0.5 * l, params: (l) => ({ dmgPct: 150 + 25 * l, range: 11, pct: 50 }),
+    desc: 'Loose everything the bow holds as one beam of arcane light. It cuts through every enemy in a line.',
+    lines: (p) => [`+${p.dmgPct}% Damage`, `Reach: ${p.range} yards`, `Ignores ${p.pct}% of resistances`],
+    synergies: [{ skill: 'arcane_arrow', pct: 8 }], color: '#e0d0ff', glyph: '⟿',
+  },
+  // Venom: poison that builds up, spreads, and eats away at whatever it is in.
+  {
+    id: 'toxin_coating', name: 'Toxin Coating', classId: 'hunter', reqLevel: 1, kind: 'passive',
+    mana: () => 0, params: (l) => ({ min: 5 + 4 * l, max: 9 + 7 * l, count: Math.min(10, 2 + Math.ceil(l / 2)) }),
+    desc: 'Passive: every arrow you shoot is coated in poison. Your poison builds up on an enemy with each hit, up to a limit.',
+    lines: (p) => [`Adds ${p.min}-${p.max} Poison Damage over 3s`, `Stacks up to ${p.count} times`], color: '#8ad040', glyph: '☠',
+  },
+  {
+    id: 'venom_cloud', name: 'Venom Cloud', classId: 'hunter', reqLevel: 12, prereq: ['toxin_coating'], kind: 'attack', weapon: 'bow', element: 'poison',
+    mana: (l) => 6 + 0.4 * l, params: (l) => ({ min: 5 + 5 * l, max: 9 + 7 * l, radius: Math.min(3.5, 2.2 + 0.08 * l), duration: 4 }),
+    desc: 'An arrow that bursts into a lingering cloud of venom. Everything in it is poisoned.',
+    lines: (p) => [`Poison Damage: ${p.min}-${p.max} per second`, `Radius: ${p.radius!.toFixed(1)} yards`, `Lasts ${p.duration}s`],
+    synergies: [{ skill: 'toxin_coating', pct: 8 }], color: '#7ac030', glyph: '☁',
+  },
+  {
+    id: 'corrode', name: 'Corrode', classId: 'hunter', reqLevel: 18, prereq: ['venom_cloud'], kind: 'passive',
+    mana: () => 0, params: (l) => ({ pct: dim(15, 5, l, 100) }),
+    desc: 'Passive: poison eats away at whatever it is in. Poisoned enemies take more damage from you.',
+    lines: (p) => [`+${p.pct}% Damage to poisoned enemies`], color: '#a8c040', glyph: '⚗',
+  },
+  {
+    id: 'blight_bloom', name: 'Blight Bloom', classId: 'hunter', reqLevel: 24, prereq: ['corrode'], kind: 'passive',
+    mana: () => 0, params: (l) => ({ pct: dim(40, 6, l, 150), radius: 3 }),
+    desc: 'Passive: a poisoned enemy that dies bursts, and the poison left in it spreads to everything close by. Packs fall one after another.',
+    lines: (p) => [`Passes on ${p.pct}% of its poison`, `Radius: ${p.radius} yards`], color: '#c0f060', glyph: '✿',
   },
   // ------------------------------------------------------------ Necromancer
   {
